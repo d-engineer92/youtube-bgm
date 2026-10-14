@@ -26,7 +26,7 @@ LA-1/LA-2はPR #2の統合先が`docs/local-analysis-workflow`で、mainには�
 - `docker compose --profile test run --rm test php tests/Support/worker-crash.php`：成功。検索ページ保存後の詳細呼出で子ワーカーを実SIGKILLし、DBキューの予約ジョブを同じtask/FetchRunで再配信。検索を再実行せず詳細だけを解決し、観測5件・消費不明の表示を確認。テスト時計だけを181秒進め、運用のtimeout/retry/lease値は短縮していない。
 - 同スクリプトで二つの独立PHPプロセスから同じ探索のread枠を同時予約。`reset()`後も上限1を超えず成功。
 - `docker run --rm --user 1000:1000 --network none --volume /home/dkuro/youtube-bgm:/repo --entrypoint python youtube-bgm-local-analysis:la1-la2 -m unittest discover -s tests/local-analysis -v`：既存27テスト成功。人工素材のみ。モデルAPI・実YouTube・DBへの接続なし。
-- Pint、`composer validate --strict`、`git diff --check`を実行。最終結果はPRのチェックと併せて確認する。
+- Pint（65ファイル）、`composer validate --strict`、`git diff --check`は成功。
 - Chromium/Playwright 1.56.1、1440×1000と390×844で`tests/browser/exploration.cjs`を実行。未入力開始→進捗→8テーマ/16条件→2本比較/目的保存→選択動画ウォッチ→古い作品/関連語→元の結果へ戻る、JP切替、画面エラーなし・横はみ出しなしを確認。各画面サイズの開始前に専用テストDBを再初期化し、日次枠20は引き上げていない。
 
 ## EXP-AC01〜20の確認先
@@ -56,6 +56,6 @@ LA-1/LA-2はPR #2の統合先が`docs/local-analysis-workflow`で、mainには�
 
 ## 起動・運用
 
-新規clone・既存環境の起動、ワーカーの単一起動、候補JSONのdry-run/apply、ブラウザーテストの再実行は[プロジェクトREADME](../../README.md)を正本とする。既存環境の追加マイグレーションは成功し、既存テーブル/データの初期化は行っていない。新規cloneとGitHub CIの検証結果は確認後にここへ追記する。
+新規clone・既存環境の起動、ワーカーの単一起動、候補JSONのdry-run/apply、ブラウザーテストの再実行は[プロジェクトREADME](../../README.md)を正本とする。既存環境の追加マイグレーションは成功し、既存テーブル/データの初期化は行っていない。新規cloneは`/tmp/bgm-exp-clean-verified`の別チェックアウト・別Composeプロジェクト・別DB volumeで確認した。composer install、APP_KEY生成、全マイグレーション、Web/worker同時起動に成功。HTTP 200、未入力入口とデモ表示、worker稼働を確認して停止した。通常環境は追加マイグレーションのみ実行済み。GitHub CIの結果は確認後に追記する。
 
 APIキー・実結果・素材・ログ・個人の候補JSONはGitへ追加していない。画面例は架空データだけ。28日処理は取得した所属自体にも適用し、現在値更新で過去所属を延命しない。

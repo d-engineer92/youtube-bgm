@@ -11,8 +11,26 @@ jobs:
       - run: cp .env.example .env
       - run: docker compose build web
       - run: docker compose run --rm --no-deps web composer install --no-interaction
+      - run: docker compose run --rm --no-deps web php artisan key:generate
       - run: docker compose --profile test run --rm test composer test
       - run: docker compose --profile test run --rm test php tests/Support/worker-crash.php
       - run: docker compose run --rm --no-deps web vendor/bin/pint --test
+      - run: docker compose --profile test build browser
+      - run: |
+          mkdir -p /tmp/bgm-exploration
+          docker compose --profile test up -d test-web
+          docker compose --profile test run --rm browser node tests/browser/smoke.cjs
+          docker compose --profile test stop test-web
+          docker compose --profile test up -d test-web test-worker
+          docker compose --profile test run --rm browser
+          docker compose --profile test stop test-worker test-web
+          docker compose --profile test up -d test-web test-worker
+          docker compose --profile test run --rm -e BGM_VIEW=mobile browser
+          docker compose --profile test stop test-worker test-web
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: guided-discovery-demo-screenshots
+          path: /tmp/bgm-exploration
       - if: always()
         run: docker compose --profile test down

@@ -43,4 +43,4 @@ main=`f85440c35ffe6c65f2d83caf49a32b27f89ceb86`の資料入口・AGENTS・DB方�
 
 ## EXP実装時の再確認（2026-10-14）
 
-search.list、Developer Policies、採用版Laravel 13のQueuesの公式本文を再確認した。composer.lockのLaravel 13.17系と公式クライアントを使用。DBキューの実挙動・timeout/retry_after/lease・強制停止後の再配信は専用PostgreSQLで確認した。Cloud Consoleの割当と実APIキーは未提供。[検証記録](verification.md)を参照。
+search.list、Developer Policies、採用版Laravel 13のQueuesの公式本文を再確認した。composer.lockのLaravel v13.36.0と公式クライアントを使用。DBキューの実挙動・timeout/retry_after/lease・強制停止後の再配信は専用PostgreSQLで確認した。Cloud Consoleの割当と実APIキーは未提供。[検証記録](verification.md)を参照。

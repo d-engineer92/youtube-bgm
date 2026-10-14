@@ -10,7 +10,7 @@
 - [利用体験（EXP-002）](discovery/experience.md)／[収集・API・復旧（EXP-003）](discovery/collection.md)
 - [DB・観測・保存（EXP-004）](discovery/data-and-retention.md)／[候補語拡張（EXP-005）](discovery/keyword-expansion.md)
 - [実装依頼と受入条件（EXP-006）](discovery/implementation.md)
-- [初期カタログ](discovery/seed-catalog-v1.json)／[出典（EXP-007）](discovery/sources.md)／[決定記録DEC-004](decisions/0004-guided-discovery.md)
+- [初期カタログ](../config/discovery-catalog-v1.json)／[出典（EXP-007）](discovery/sources.md)／[決定記録DEC-004](decisions/0004-guided-discovery.md)
 
 ## 読む順番
 

@@ -1,16 +1,16 @@
 # 最小構成とデータ設計
 
 > 文書ID：ARC-001  
-> 状態：初回実装用の提案仕様（未実装）  
+> 状態：初回実装用の提案仕様（未実装）。DB方式は2026-10-14の追加指示で確定。  
 > 読む場面：環境構築・Laravel構成・PostgreSQLの設計をするとき  
 > 整理日：2026-10-14  
-> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L17–L22、L222–L237。見出し・参照リンクを整理し、要件の内容は引き継いでいる。
+> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L17–L22、L222–L237。DB方式は利用者の追加指示を反映し、その他の要件は引き継いでいる。
 
 ## 技術前提
 
 ユーザー資料の指定：Windows / WSL / Docker、WebとDBを分離、PHP / Laravel、公式Googleクライアントライブラリ、YouTube Data API、APIキーのみ、OAuthなし。[U2](../references/sources.md#u2)
 
-DBはPostgreSQLを採用する提案。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
+**DBはPostgreSQLのみを採用する。テスト・CI・分析結果の保存にも適用し、SQLiteは使用しない。** 接続設定とテストの隔離は[PostgreSQL専用DB方針](database-policy.md)を正本とする。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
 
 ## データ設計は必要最小限にする
 
@@ -30,6 +30,7 @@ APIキャッシュを削除したとき、自分の企画が意図せずすべ�
 
 ## 関連文書
 
+- [PostgreSQL専用DB方針](database-policy.md)
 - [初回実装の範囲](../project/mvp-scope.md)
 - [API取得仕様](../integrations/youtube-data-api.md)
 - [保存期限](../compliance/data-retention.md)

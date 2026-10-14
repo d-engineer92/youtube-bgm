@@ -59,4 +59,24 @@ class GoogleGatewayTest extends TestCase
             $this->assertFalse($e->retryable);
         }
     }
+
+    #[DataProvider('discoveryPresets')]
+    public function test_discovery_parameters_reach_official_http(string $region, string $language): void
+    {
+        config(['youtube.key' => 'fixture-not-real']);
+        $mock = new MockHandler([new Response(200, [], '{"items":[]}')]);
+        $gateway = new GoogleGateway(new Client(['handler' => HandlerStack::create($mock)]));
+        $params = ['q' => 'background music', 'regionCode' => $region, 'relevanceLanguage' => $language, 'type' => 'video', 'videoDuration' => 'long', 'maxResults' => 10, 'publishedAfter' => '2026-09-14T00:12:34Z', 'publishedBefore' => '2026-10-14T00:12:34Z', 'order' => 'viewCount'];
+        $gateway->fetch('search', $params);
+        parse_str($mock->getLastRequest()->getUri()->getQuery(), $sent);
+        foreach ($params as $key => $value) {
+            $this->assertSame((string) $value, $sent[$key]);
+        }
+        $this->assertSame('snippet', $sent['part']);
+    }
+
+    public static function discoveryPresets(): array
+    {
+        return [['US', 'en'], ['JP', 'ja']];
+    }
 }

@@ -2,6 +2,26 @@
 @section('content')
 @php use App\Support\Presentation as P; $channelMap = $channels->keyBy('external_id'); @endphp
 <div class="intro"><p class="eyebrow">画面A / DISCOVER & WATCH</p><h1>探す・追う</h1><p>用途や雰囲気で候補を探し、取得できた範囲から比較する動画を選びます。</p></div>
+<section class="panel exploration-entry">
+    <p class="eyebrow">言葉が決まっていなくても、ここから</p>
+    <h2>どんなBGMを作るか、まだ決まっていなくても大丈夫です。</h2>
+    <p>用途・雰囲気・音楽の方向を横断して、候補を探します。検索語・ジャンル・用途の入力は不要です。</p>
+    <form action="{{ route('explorations.start') }}" method="post">@csrf
+        <input type="hidden" name="token" value="{{ $startToken }}">
+        <label>調査プリセット<select name="preset" id="exploration-preset">@foreach($catalog['presets'] as $id=>$preset)<option value="{{ $id }}">{{ $preset['label_ja'] }}（{{ $preset['region_code'] }}/{{ $preset['relevance_language'] }}）</option>@endforeach</select></label>
+        <p>8テーマ・最近30日・20分超。16検索ページ／最大160検索ヒット（重複を含む）。詳細取得・再試行は別途呼出が必要です。</p>
+        <button id="exploration-start" @disabled(config('youtube.mode')==='live' && !config('youtube.key'))>{{ config('youtube.mode')==='demo' ? '架空データで操作を試す' : '英語圏のBGMを広く調べる' }}</button>
+    </form>
+    @if(config('youtube.mode')==='live' && !config('youtube.key'))
+        <p class="banner">APIキー未設定。サーバーの.envに YOUTUBE_API_KEY を設定してWebとワーカーを再起動してください。</p>
+        <form action="{{ route('research.mode') }}" method="post">@csrf<input type="hidden" name="mode" value="demo"><button class="secondary">架空データで操作を試す</button></form>
+    @elseif(session('research_mode')==='demo')
+        <form action="{{ route('research.mode') }}" method="post">@csrf<input type="hidden" name="mode" value="configured"><button class="secondary">環境設定のモードへ戻る</button></form>
+    @endif
+    <p class="hint">USは視聴可能地域、enは関連言語です。実際の視聴者国・RPMは未確認。カタログは需要未検証の検索仮説で、動画のジャンル判定ではありません。</p>
+    @if($explorations->isNotEmpty())<p><a href="{{ route('explorations.show',$explorations->first()->id) }}">前回の結果を見る</a></p><details><summary>これまでの探索</summary><ul>@foreach($explorations as $e)<li><a href="{{ route('explorations.show',$e->id) }}">{{ $e->preset_id }} / {{ P::date($e->t0) }} / {{ P::status($e->status) }}</a></li>@endforeach</ul></details>@endif
+</section>
+<details class="manual-entry" open><summary>キーワード・URLを指定して探す（既存機能）</summary>
 <div class="two-column">
 <section class="panel">
     <h2>キーワードで候補を探す</h2>
@@ -24,6 +44,7 @@
     <div class="divider"><h3>ウォッチを更新</h3><p class="hint">選択した動画・チャンネルを更新します。検索は繰り返しません。停止中の観測は補完しません。</p><form action="{{ route('refresh') }}" method="post">@csrf<button class="secondary">ウォッチ対象を手動更新</button></form></div>
 </section>
 </div>
+</details>
 <section class="panel">
     <h2>取得済みの動画 <span class="badge">{{ $videos->total() }}本</span></h2>
     <p class="hint">並び替え・絞り込みの対象は常に取得済み範囲です。「全動画」や「最初の投稿」を意味しません。少ない再生数の動画も比較できます。</p>
@@ -55,4 +76,12 @@
 @if($watched->isNotEmpty())<section class="panel"><h2>ウォッチ中の対象</h2><ul>@foreach($watched as $target)<li>{{ $target->video?->title ?? $target->channel?->title ?? $target->external_id }} — {{ P::status($target->last_status) }} @if(!$target->video && !$target->channel)（公開情報は未取得または期限切れ）@endif</li>@endforeach</ul></section>@endif
 <section class="panel"><h2>最近の取得実行</h2><ul>@forelse($runs as $run)<li><a href="{{ route('runs.show',$run->id) }}">#{{ $run->id }} {{ $run->kind }} — {{ P::status($run->status) }}</a> {{ P::date($run->started_at) }}</li>@empty<li>取得実行はまだありません。</li>@endforelse</ul></section>
 @if($comparisons->isNotEmpty())<section class="panel"><h2>保存した比較目的</h2><ul>@foreach($comparisons as $c)<li><a href="{{ route('comparisons.show',$c->id) }}">{{ $c->purpose }}</a></li>@endforeach</ul></section>@endif
+@endsection
+@section('scripts')
+<script>
+document.getElementById('exploration-preset').addEventListener('change', event => {
+    const button=document.getElementById('exploration-start');
+    if (!{{ config('youtube.mode')==='demo' ? 'true' : 'false' }}) button.textContent=event.target.value==='ja-JP'?'日本向けのBGMを広く調べる':'英語圏のBGMを広く調べる';
+});
+</script>
 @endsection

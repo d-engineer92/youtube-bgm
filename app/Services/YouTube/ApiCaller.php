@@ -2,6 +2,7 @@
 
 namespace App\Services\YouTube;
 
+use App\Models\Exploration;
 use Illuminate\Support\Facades\DB;
 
 class ApiCaller
@@ -9,6 +10,13 @@ class ApiCaller
     private int $calls = 0;
 
     private float $started;
+
+    private ?string $explorationId = null;
+
+    public function setExploration(?string $id): void
+    {
+        $this->explorationId = $id;
+    }
 
     public function __construct(private Gateway $gateway)
     {
@@ -36,6 +44,18 @@ class ApiCaller
             $column = $method === 'search' ? 'search_calls' : 'read_calls';
             $limit = config($method === 'search' ? 'youtube.daily_search_calls' : 'youtube.daily_read_calls');
             DB::transaction(function () use ($day, $source, $column, $limit) {
+                $exploration = $this->explorationId ? Exploration::lockForUpdate()->find($this->explorationId) : null;
+                if ($this->explorationId) {
+                    if (! $exploration || $exploration->source !== $source || $exploration->expires_at <= now()) {
+                        throw new ApiFailure('expired_run');
+                    }
+                    if ($exploration->stop_requested) {
+                        throw new ApiFailure('halt_requested');
+                    }
+                    if ($exploration->getAttribute($column === 'search_calls' ? 'search_limit' : 'read_limit') <= $exploration->$column) {
+                        throw new ApiFailure('run_limit');
+                    }
+                }
                 DB::table('api_days')->insertOrIgnore(['source' => $source, 'day' => $day]);
                 $q = DB::table('api_days')->where('source', $source)->where('day', $day);
                 $row = $q->lockForUpdate()->first();
@@ -43,6 +63,10 @@ class ApiCaller
                     throw new ApiFailure('daily_limit');
                 }
                 $q->increment($column);
+                if ($exploration) {
+                    $exploration->increment($column);
+                    $exploration->update(['in_flight' => true, 'heartbeat_at' => now()]);
+                }
             });
             $this->calls++;
             try {
@@ -55,6 +79,10 @@ class ApiCaller
                     throw $e;
                 }
                 usleep(200000 * (2 ** $attempt));
+            } finally {
+                if ($this->explorationId) {
+                    Exploration::whereKey($this->explorationId)->update(['in_flight' => false, 'heartbeat_at' => now()]);
+                }
             }
         }
     }

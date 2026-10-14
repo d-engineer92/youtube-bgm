@@ -1,12 +1,12 @@
 # 探索の収集計画・API・復旧
 
-> 文書ID：EXP-003  
-> 状態：追加実装仕様（未実装）／2026-10-14  
+> 文書ID：EXP-003\
+> 状態：EXP-A・EXP-B実装済み／2026-10-14。[検証記録](verification.md)。\
 > 読む場面：プランナー、API呼び出し、ジョブ、進捗、再開処理。
 
 ## 1. 固定する検索計画
 
-[カタログ](seed-catalog-v1.json)の8テーマから、選択プリセットのprimaryを一つずつ使う。開始時刻T0をUTCの日時として確定し、辞書版・検索語・フィルターを実行に保存する。再開時にT0や語を現在値へ差し替えない。
+[カタログ](../../config/discovery-catalog-v1.json)の8テーマから、選択プリセットのprimaryを一つずつ使う。開始時刻T0をUTCの日時として確定し、辞書版・検索語・フィルターを実行に保存する。再開時にT0や語を現在値へ差し替えない。
 
 | 条件ID | 調査目的 | API条件 | 初回 |
 |---|---|---|---|
@@ -60,7 +60,7 @@ worker timeout < retry_after < claim/lease期間等の整合を設定し、YouTu
 
 ## 5. 状態と再開
 
-実行：queued → running → complete / partial / paused / failed / expired。  
+実行：queued → running → complete / partial / paused / failed / expired。\
 タスク：pending → running → complete / empty / partial / failed / skipped。
 
 completeは計画したスコープの完了。emptyはAPI成功で0ヒット。詳細未返却はunavailable、エラーによる未取得とは区別する。1タスク失敗が他テーマの成功結果を破棄しない。

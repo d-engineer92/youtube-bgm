@@ -18,5 +18,6 @@
     @yield('content')
     <footer>公開数値は仮説づくりの参考です。収益化・需要・成功率は判断しません。時刻はJST。<br>期限切れの公開データは閲覧前に削除します。<a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>で視聴・コメントを確認できます。</footer>
 </main>
+@yield('scripts')
 </body>
 </html>

@@ -63,3 +63,7 @@ PostgreSQL再テストは56件・195アサーション成功。PintとComposer�
 未コミットの88ファイルをローカル保全後、f75d1b0として[PR #3](https://github.com/d-engineer92/youtube-bgm/pull/3)へ保存した。環境の実キー・素材・DB実データを追跡対象へ含めていない。通常DBへのテスト操作は実施していない。
 
 ローカルで再実行した結果は56件・195アサーション成功。これとは別に、[GitHub pull_request CI](https://github.com/d-engineer92/youtube-bgm/actions/runs/38506925269)でも56件・195アサーション成功をログで確認した。CIの実接続はPDO pgsql / youtube_bgm_test / bgm_test / PostgreSQL 18.6。push CIも成功。GitHub CIの未確認は解消したが、実YouTube API取得・実データは引き続き未確認である。
+
+## 検索入口の実装状況（2026-10-14）
+
+EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ接続した。受入条件別の確認、実API未確認、画面例、実行手順は[EXP検証記録](../discovery/verification.md)を正本として参照する。LA-1・LA-2は既存ブランチから変更せず統合。旧作業2・LA-3は引き続き未実装。

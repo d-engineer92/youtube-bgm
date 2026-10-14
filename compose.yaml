@@ -21,6 +21,10 @@ services:
     <<: *app
     command: ["php", "artisan", "schedule:work"]
     profiles: [scheduler]
+  worker:
+    <<: *app
+    command: ["php", "artisan", "queue:work", "database", "--sleep=1", "--timeout=120", "--tries=20"]
+    restart: unless-stopped
   db:
     image: *postgres-image
     environment:
@@ -81,5 +85,45 @@ services:
       db-test:
         condition: service_healthy
     command: ["php", "artisan", "bgm:browser-test-server"]
+    healthcheck:
+      test: ["CMD", "php", "-r", "exit(@file_get_contents('http://127.0.0.1:8088/up') === false ? 1 : 0);"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+  test-worker:
+    <<: *app
+    profiles: [test]
+    environment:
+      APP_ENV: testing
+      YOUTUBE_MODE: demo
+      DB_CONNECTION: pgsql
+      DB_HOST: db-test
+      DB_DATABASE: youtube_bgm_test
+      DB_USERNAME: bgm_test
+      DB_PASSWORD: test-only
+    depends_on:
+      db-test:
+        condition: service_healthy
+      test-web:
+        condition: service_healthy
+    command: ["php", "artisan", "bgm:browser-test-worker"]
+  browser:
+    profiles: [test]
+    build:
+      context: .
+      dockerfile: docker/browser-tests/Dockerfile
+    image: youtube-bgm-browser:local
+    working_dir: /app
+    user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+    volumes:
+      - .:/app:ro
+      - /tmp/bgm-exploration:/evidence
+    environment:
+      BGM_URL: http://test-web:8088/
+      BGM_EVIDENCE: /evidence
+    depends_on:
+      test-web:
+        condition: service_healthy
+    command: ["node", "tests/browser/exploration.cjs"]
 volumes:
   bgm-db:

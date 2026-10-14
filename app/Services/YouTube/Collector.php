@@ -3,6 +3,7 @@
 namespace App\Services\YouTube;
 
 use App\Models\Channel;
+use App\Models\ExplorationTask;
 use App\Models\FetchRun;
 use App\Models\Observation;
 use App\Models\RunItem;
@@ -11,7 +12,6 @@ use App\Models\Video;
 use App\Services\Retention;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
-use Illuminate\Contracts\Cache\LockTimeoutException;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -26,6 +26,25 @@ class Collector
             $run = $this->newRun('search', $conditions);
 
             return $this->execute($run, $conditions['limit']);
+        });
+    }
+
+    public function collectTask(ExplorationTask $task): FetchRun
+    {
+        return $this->locked(function () use ($task) {
+            $run = DB::transaction(function () use ($task) {
+                $task = ExplorationTask::lockForUpdate()->findOrFail($task->id);
+                if ($task->fetch_run_id) {
+                    return $task->fetchRun;
+                }
+                $run = $this->newRun('search', $task->conditions);
+                $run->update(['expires_at' => $task->expires_at]);
+                $task->update(['fetch_run_id' => $run->id]);
+
+                return $run;
+            });
+
+            return $this->execute($run, 10);
         });
     }
 
@@ -79,16 +98,17 @@ class Collector
     private function locked(callable $work): FetchRun
     {
         $this->retention->prune();
-        try {
-            // One local user: serialize collection, including manual and scheduled operations.
-            return Cache::lock('youtube:collection', 300)->block(1, function () use ($work) {
-                $this->api->reset();
+        // One local user: serialize collection, including manual and scheduled operations.
+        $result = Cache::lock('youtube:collection', 180)->get(function () use ($work) {
+            $this->api->reset();
 
-                return $work();
-            });
-        } catch (LockTimeoutException) {
+            return $work();
+        });
+        if ($result === false) {
             throw new ApiFailure('busy');
         }
+
+        return $result;
     }
 
     private function newRun(string $kind, array $conditions, ?string $key = null): FetchRun
@@ -102,6 +122,7 @@ class Collector
             throw new ApiFailure('expired_run');
         }
         $run->update(['status' => 'running', 'error_code' => null, 'finished_at' => null]);
+        $this->api->setExploration($run->conditions['exploration_id'] ?? null);
         try {
             $this->hydrate($run);
             if ($run->kind === 'search' || $run->kind === 'uploads') {
@@ -139,6 +160,7 @@ class Collector
         $success = $run->items()->where('status', 'success')->count();
         $unresolved = $run->items()->where('status', '!=', 'success')->count();
         $run->update(['status' => ! $run->error_code && ! $unresolved ? 'complete' : ($success ? 'partial' : 'failed'), 'finished_at' => now()]);
+        $this->api->setExploration(null);
 
         return $run->fresh();
     }
@@ -146,6 +168,12 @@ class Collector
     private function searchParameters(array $c): array
     {
         $params = ['q' => $c['q'], 'type' => 'video', 'order' => $c['order'], 'videoDuration' => $c['duration']];
+        // Saved exploration timestamps are already UTC, unlike manual form dates.
+        foreach (['regionCode', 'relevanceLanguage', 'publishedAfter', 'publishedBefore'] as $key) {
+            if (isset($c[$key])) {
+                $params[$key] = $c[$key];
+            }
+        }
         if (! empty($c['published_after'])) {
             $params['publishedAfter'] = CarbonImmutable::parse($c['published_after'], 'Asia/Tokyo')->utc()->toIso8601ZuluString();
         }
@@ -159,19 +187,24 @@ class Collector
     private function pages(FetchRun $run, string $method, array $parameters, int $limit): void
     {
         $listed = 0;
-        while (! $run->listing_done && $listed < $limit) {
+        while (! $run->listing_done && $listed < $limit && (! isset($run->conditions['page_limit']) || $run->pages < $run->conditions['page_limit'])) {
             $params = $parameters + ['maxResults' => min(50, $limit - $listed)];
             if ($run->next_page_token !== null) {
                 $params['pageToken'] = $run->next_page_token;
             }
             $page = $this->api->call($method, $params);
+            if (isset($run->conditions['page_limit']) && (count($page['items'] ?? []) > 10 || (isset($page['nextPageToken']) && (! is_string($page['nextPageToken']) || strlen($page['nextPageToken']) > 4096)))) {
+                throw new ApiFailure('invalid_response');
+            }
             if (! isset($page['items']) || ! is_array($page['items']) || (! empty($page['nextPageToken']) && $page['nextPageToken'] === $run->next_page_token)) {
                 throw new ApiFailure('invalid_response');
             }
-            $this->acceptPage($run, $method, $page);
             $listed += count($page['items']);
             // Commit the discovered IDs and cursor before hydration so a partial failure can resume.
-            $run->update(['pages' => $run->pages + 1, 'next_page_token' => $page['nextPageToken'] ?? null, 'listing_done' => empty($page['nextPageToken'])]);
+            DB::transaction(function () use ($run, $method, $page) {
+                $this->acceptPage($run, $method, $page);
+                $run->update(['pages' => $run->pages + 1, 'next_page_token' => $page['nextPageToken'] ?? null, 'listing_done' => empty($page['nextPageToken']), 'search_hits' => $run->search_hits + count($page['items']), 'response_region' => is_string($page['regionCode'] ?? null) ? $page['regionCode'] : null, 'listed_at' => now()]);
+            });
             $this->hydrate($run);
         }
     }
@@ -181,12 +214,13 @@ class Collector
         if (! isset($page['items']) || ! is_array($page['items'])) {
             throw new ApiFailure('invalid_response');
         }
-        foreach ($page['items'] ?? [] as $item) {
+        foreach ($page['items'] ?? [] as $rank => $item) {
             $id = $method === 'search' ? ($item['id']['videoId'] ?? null) : ($item['contentDetails']['videoId'] ?? null);
             if (! is_string($id) || ! preg_match('/^[A-Za-z0-9_-]{11}$/D', $id)) {
                 throw new ApiFailure('invalid_response');
             }
-            $this->add($run, 'video', $id);
+            $target = $this->add($run, 'video', $id);
+            $run->items()->where('target_id', $target->id)->whereNull('search_rank')->update(['search_rank' => $run->search_hits + $rank + 1]);
         }
     }
 
@@ -224,11 +258,13 @@ class Collector
 
                             continue;
                         }
-                        $this->store($run, $target, $data, $fetchedAt);
-                        $item->update(['status' => 'success', 'error_code' => null]);
-                        if ($kind === 'video') {
-                            $this->add($run, 'channel', $data['snippet']['channelId']);
-                        }
+                        DB::transaction(function () use ($run, $target, $data, $fetchedAt, $item, $kind) {
+                            $this->store($run, $target, $data, $fetchedAt);
+                            $item->update(['status' => 'success', 'error_code' => null]);
+                            if ($kind === 'video') {
+                                $this->add($run, 'channel', $data['snippet']['channelId']);
+                            }
+                        });
                     }
                 } catch (ApiFailure $e) {
                     foreach ($chunk as $item) {
@@ -239,7 +275,7 @@ class Collector
                         $item->update(['status' => 'failed', 'error_code' => $e->reason]);
                         $item->target->update(['last_status' => 'failed', 'last_attempt_at' => now()]);
                     }
-                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'quota_exceeded', 'operation_limit'], true)) {
+                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'quota_exceeded', 'operation_limit', 'run_limit', 'halt_requested', 'expired_run', 'access_denied'], true)) {
                         throw $e;
                     }
                 }

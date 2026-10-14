@@ -12,6 +12,7 @@ jobs:
       - run: docker compose build web
       - run: docker compose run --rm --no-deps web composer install --no-interaction
       - run: docker compose --profile test run --rm test composer test
+      - run: docker compose --profile test run --rm test php tests/Support/worker-crash.php
       - run: docker compose run --rm --no-deps web vendor/bin/pint --test
       - if: always()
         run: docker compose --profile test down

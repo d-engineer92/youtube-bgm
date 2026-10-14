@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Middleware\PruneExpiredData;
+use App\Http\Middleware\ResearchMode;
 use App\Http\Middleware\VerifyTestDatabase;
 use App\Services\YouTube\ApiFailure;
 use App\Support\Presentation;
@@ -17,7 +18,7 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->prepend(VerifyTestDatabase::class);
-        $middleware->web(append: [PruneExpiredData::class]);
+        $middleware->web(append: [ResearchMode::class, PruneExpiredData::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->dontReport([ApiFailure::class]);

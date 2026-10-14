@@ -66,4 +66,4 @@ PostgreSQL再テストは56件・195アサーション成功。PintとComposer�
 
 ## 検索入口の実装状況（2026-10-14）
 
-EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ接続した。受入条件別の確認、実API未確認、画面例、実行手順は[EXP検証記録](../discovery/verification.md)を正本として参照する。LA-1・LA-2は既存ブランチから変更せず統合。旧作業2・LA-3は引き続き未実装。
+EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ接続した。受入条件別の確認、実APIの確認範囲、画面例、実行手順は[EXP検証記録](../discovery/verification.md)を正本として参照する。LA-1・LA-2は既存ブランチから変更せず統合。旧作業2・LA-3は引き続き未実装。

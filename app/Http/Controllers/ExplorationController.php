@@ -80,10 +80,11 @@ class ExplorationController extends Controller
 
     public function keyword(Request $request, string $id)
     {
-        $data = $request->validate(['status' => ['required', Rule::in(['approved', 'held', 'disabled'])]]);
+        $data = $request->validate(['status' => ['required', Rule::in(['approved', 'held', 'disabled'])], 'exploration' => ['nullable', 'uuid']]);
+        $origin = isset($data['exploration']) ? $this->find($data['exploration']) : null;
         $keyword = ExplorationKeyword::where('source', config('youtube.mode'))->findOrFail($id);
         $keyword->update(['status' => $data['status'], 'approved_at' => $data['status'] === 'approved' ? now() : null]);
 
-        return back()->with('notice', '候補語の状態を保存しました。検索はまだ実行していません。');
+        return ($origin ? redirect()->route('explorations.show', $origin->id) : redirect()->route('discovery'))->with('notice', '候補語の状態を保存しました。検索はまだ実行していません。');
     }
 }

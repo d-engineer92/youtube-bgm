@@ -497,6 +497,22 @@ class ExplorationTest extends TestCase
         ];
     }
 
+    public function test_keyword_approval_returns_to_its_result_after_progress_polling(): void
+    {
+        app(KeywordImport::class)->import(json_encode($this->proposal()), true);
+        $keyword = ExplorationKeyword::first();
+        $run = $this->start();
+        $this->get('/explorations/'.$run->id)->assertOk()->assertSee('name="exploration"', false);
+        $this->get('/explorations/'.$run->id.'/progress')->assertOk();
+        $this->post('/discovery-keywords/'.$keyword->id, ['status' => 'approved', 'exploration' => $run->id])->assertRedirect(route('explorations.show', $run->id));
+        $this->assertSame('approved', $keyword->fresh()->status);
+        $this->assertCount(0, $this->gateway->calls);
+        $this->post('/discovery-keywords/'.$keyword->id, ['status' => 'held'])->assertRedirect(route('discovery'));
+        $this->assertSame('held', $keyword->fresh()->status);
+        $this->post('/discovery-keywords/'.$keyword->id, ['status' => 'approved', 'exploration' => (string) Str::uuid()])->assertNotFound();
+        $this->assertSame('held', $keyword->fresh()->status);
+    }
+
     #[DataProvider('malformedPages')]
     public function test_invalid_page_never_commits_partial_ids_ranks_or_cursor(array $page): void
     {

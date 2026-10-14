@@ -18,6 +18,7 @@
 | Codexへの依頼・レビュー | [実装順](development/implementation-plan.md)、[AC一覧](development/acceptance-criteria.md)、対象機能の仕様 | 対象に該当するAC・12 |
 | 仕様・方針の更新 | [文書管理](development/documentation-rules.md)、変更対象の正本、下記の決定記録 | 変更対象のAC |
 | 出典・過去経緯の確認 | [出典](references/sources.md)、[移行対応表](references/migration-map.md)。必要な場合だけarchive | 実装の自動追加はしない |
+| ローカル素材の取得・分析・削除（追加依頼） | [専用入口](local-analysis/README.md)から対象仕様だけを読む | LA-AC01〜19。既存初回のACとは別 |
 
 API由来データの保存・表示・出力を変える作業では、表の作業名にかかわらず保存期限の文書も確認する。
 
@@ -39,6 +40,22 @@ API由来データの保存・表示・出力を変える作業では、表の�
 | DEV-002 | [初回実装の受入条件](development/acceptance-criteria.md) | テスト設計・PRレビュー・完了報告を行うとき |
 | REF-001 | [出典・確認状況・再確認が必要な事項](references/sources.md) | 根拠を調べるとき、外部仕様に依存する判断をするとき |
 
+## 追加仕様：ローカル素材分析
+
+2026-10-14の追加依頼。初回の検索・比較基盤とは別作業にし、勝手に初回スコープへ混ぜない。実装・スキル登録はまだ行っていない。
+
+| ID | 文書 |
+|---|---|
+| LMA-001 | [目的・追加範囲・作業別の読み方](local-analysis/README.md) |
+| LMA-002 | [取得・状態・結果確定・安全な削除・復旧](local-analysis/workflow.md) |
+| LMA-003 | [固定する分析項目・区間・解釈の限界](local-analysis/analysis-profile.md) |
+| LMA-004 | [JSON/CSV/Markdownと後続DB取込](local-analysis/output-contract.md) |
+| LMA-005 | [Codexスキル仕様・ひな形](local-analysis/codex-skill.md) |
+| LMA-006 | [実装順・依頼文・19項目の受入条件](local-analysis/implementation.md) |
+| LMA-007 | [根拠・公式資料・未確認事項](local-analysis/sources.md) |
+| review-v1 | [毎回使用する固定考察プロンプト](local-analysis/prompts/review-v1.md) |
+| schema-v1 | [出力JSON Schema](local-analysis/schemas/analysis-v1.schema.json)、[架空の書式例](local-analysis/examples/README.md) |
+
 ## 管理・履歴
 
 | 文書 | 用途 |
@@ -46,6 +63,7 @@ API由来データの保存・表示・出力を変える作業では、表の�
 | [文書管理ルール](development/documentation-rules.md) | 正本・分割粒度・更新方法 |
 | [DEC-001：初回を調査・企画支援へ限定](decisions/0001-research-first-mvp.md) | v1から範囲を縮小した理由 |
 | [DEC-002：責務別の文書構成](decisions/0002-modular-documentation.md) | 今回の分割方針とトレードオフ |
+| [DEC-003：素材を保持しないローカル分析](decisions/0003-local-media-analysis.md) | 追加分析と初回の境界、スキルとバッチの分担 |
 | [移行対応表](references/migration-map.md) | 元v2の対応箇所、原本のハッシュ |
 | [archiveの案内](archive/README.md) | 凍結原本。通常の実装対象外 |
 

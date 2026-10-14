@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0.0",
+  "job_id": "00000000-0000-4000-8000-000000000001",
+  "input_kind": "local_file",
+  "input_value": "/path/to/authorized-original.wav",
+  "subject_type": "own",
+  "mode": "audio",
+  "profile_id": "analysis-profile-v1",
+  "created_at": "2026-10-14T00:00:00Z",
+  "rights_record_id": "REPLACE_WITH_VERIFIED_RECORD_ID",
+  "acquisition_approved": false,
+  "analysis_approved": false,
+  "derived_text_to_codex_approved": false,
+  "images_to_codex_approved": false,
+  "context": {
+    "intended_use": "夜の作業用BGM。これは記入例で需要の確認結果ではありません。",
+    "research_question": "冒頭と本編の音量推移、無音区間を確認したい。"
+  }
+}

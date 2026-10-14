@@ -1,0 +1,11 @@
+name: Local analysis synthetic tests
+on:
+  push:
+  pull_request:
+jobs:
+  local-analysis:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f scripts/local-analysis/Dockerfile -t youtube-bgm-local-analysis:la1-la2 .
+      - run: docker run --rm --user "$(id -u):$(id -g)" --network none --volume "$PWD:/repo" --entrypoint python youtube-bgm-local-analysis:la1-la2 -m unittest discover -s tests/local-analysis -v

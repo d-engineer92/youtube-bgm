@@ -10,7 +10,7 @@
 
 | 作業 | 必要な文書 | 主な受入条件 |
 |---|---|---|
-| 開発環境・DB | [構成とデータ](architecture/system-and-data.md)、[保存期限](compliance/data-retention.md) | AC-09・10・12 |
+| 開発環境・DB | [構成とデータ](architecture/system-and-data.md)、[PostgreSQL専用方針](architecture/database-policy.md)、[保存期限](compliance/data-retention.md) | AC-09・10・12・13 |
 | テスト・CI・接続設定 | [PostgreSQL専用方針](architecture/database-policy.md)、[AC一覧](development/acceptance-criteria.md) | AC-10・12・13 |
 | API取得・日次更新 | [API](integrations/youtube-data-api.md)、[保存期限](compliance/data-retention.md)、[数値](research/metrics.md)、[画面A](features/discovery.md) | AC-01〜04・09・10 |
 | 検索・ウォッチ画面 | [画面A](features/discovery.md)、[API](integrations/youtube-data-api.md)、[数値](research/metrics.md) | AC-01〜04 |
@@ -19,8 +19,9 @@
 | Codexへの依頼・レビュー | [実装順](development/implementation-plan.md)、[AC一覧](development/acceptance-criteria.md)、対象機能の仕様 | 対象に該当するAC・12 |
 | 仕様・方針の更新 | [文書管理](development/documentation-rules.md)、変更対象の正本、下記の決定記録 | 変更対象のAC |
 | 出典・過去経緯の確認 | [出典](references/sources.md)、[移行対応表](references/migration-map.md)。必要な場合だけarchive | 実装の自動追加はしない |
+| ローカル素材の取得・分析・削除（追加依頼） | [専用入口](local-analysis/README.md)から対象仕様だけを読む | LA-AC01〜19。DBを使う場合はAC-13も適用 |
 
-API由来データの保存・表示・出力を変える作業では、表の作業名にかかわらず保存期限の文書も確認する。
+API由来データの保存・表示・出力を変える作業では、表の作業名にかかわらず保存期限の文書も確認する。DB・テスト・CI・バッチの保存先を扱う作業では、[PostgreSQL専用方針](architecture/database-policy.md)も確認する。
 
 ## 現行の実装仕様（v2から分割）
 
@@ -33,12 +34,29 @@ API由来データの保存・表示・出力を変える作業では、表の�
 | RES-001 | [初心者向け分析ガイドと質問の管理](research/analysis-guide.md) | 質問・目的・回答例・注意点を実装または改善するとき |
 | RES-002 | [公開数値・差分・比較条件の扱い](research/metrics.md) | 再生数表示・差分・並び替え・比較ラベルを実装するとき |
 | ARC-001 | [最小構成とデータ設計](architecture/system-and-data.md) | 環境構築・Laravel構成・PostgreSQLの設計をするとき |
+| ARC-002 | [PostgreSQL専用DB方針](architecture/database-policy.md) | DB設定・DB依存テスト・CI・分析結果取込を扱うとき |
 | INT-001 | [YouTube Data API：取得・更新・エラー処理](integrations/youtube-data-api.md) | APIクライアント・ページ送り・日次取得・失敗処理を作るとき |
 | POL-001 | [APIデータの保存期限・削除・利用境界](compliance/data-retention.md) | API由来データを保存・表示・出力・復元するとき |
 | OPS-001 | [調査から小さな試作・公開へ進む手順](operations/validation-roadmap.md) | 費用を使う順番と、次の試作に進む判断を確認するとき |
 | DEV-001 | [Codexへの実装順と利用確認](development/implementation-plan.md) | Codexの作業を依頼・分割するとき |
 | DEV-002 | [初回実装の受入条件](development/acceptance-criteria.md) | テスト設計・PRレビュー・完了報告を行うとき |
 | REF-001 | [出典・確認状況・再確認が必要な事項](references/sources.md) | 根拠を調べるとき、外部仕様に依存する判断をするとき |
+
+## 追加仕様：ローカル素材分析
+
+2026-10-14の追加依頼。初回の検索・比較基盤とは別作業にし、勝手に初回スコープへ混ぜない。ローカル分析の実装・検証状況は別の[PR #2](https://github.com/d-engineer92/youtube-bgm/pull/2)で管理する。
+
+| ID | 文書 |
+|---|---|
+| LMA-001 | [目的・追加範囲・作業別の読み方](local-analysis/README.md) |
+| LMA-002 | [取得・状態・結果確定・安全な削除・復旧](local-analysis/workflow.md) |
+| LMA-003 | [固定する分析項目・区間・解釈の限界](local-analysis/analysis-profile.md) |
+| LMA-004 | [JSON/CSV/Markdownと後続DB取込](local-analysis/output-contract.md) |
+| LMA-005 | [Codexスキル仕様・ひな形](local-analysis/codex-skill.md) |
+| LMA-006 | [実装順・依頼文・19項目の受入条件](local-analysis/implementation.md) |
+| LMA-007 | [根拠・公式資料・未確認事項](local-analysis/sources.md) |
+| review-v1 | [毎回使用する固定考察プロンプト](local-analysis/prompts/review-v1.md) |
+| schema-v1 | [出力JSON Schema](local-analysis/schemas/analysis-v1.schema.json)、[架空の書式例](local-analysis/examples/README.md) |
 
 ## 管理・履歴
 
@@ -47,6 +65,7 @@ API由来データの保存・表示・出力を変える作業では、表の�
 | [文書管理ルール](development/documentation-rules.md) | 正本・分割粒度・更新方法 |
 | [DEC-001：初回を調査・企画支援へ限定](decisions/0001-research-first-mvp.md) | v1から範囲を縮小した理由 |
 | [DEC-002：責務別の文書構成](decisions/0002-modular-documentation.md) | 今回の分割方針とトレードオフ |
+| [DEC-003：素材を保持しないローカル分析](decisions/0003-local-media-analysis.md) | 追加分析と初回の境界、スキルとバッチの分担 |
 | [移行対応表](references/migration-map.md) | 元v2の対応箇所、原本のハッシュ |
 | [archiveの案内](archive/README.md) | 凍結原本。通常の実装対象外 |
 

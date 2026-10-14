@@ -4,7 +4,7 @@
 > 状態：初回全体の受入条件（作業1の検証結果は末尾、実データ未確認）\
 > 読む場面：テスト設計・PRレビュー・完了報告を行うとき  
 > 整理日：2026-10-14  
-> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L274–L288。見出し・参照リンクを整理し、要件の内容は引き継いでいる。
+> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L274–L288。AC-01〜12は引き継ぎ、AC-13は利用者のPostgreSQL統一指示に基づく追加。
 
 1. **AC-01** URL/ID直接登録とキーワード検索から、重複なく候補を追加できる。
 2. **AC-02** 取得条件・範囲・日時が分かり、部分取得を全件と表示しない。
@@ -18,12 +18,12 @@
 10. **AC-10** 日次処理の間隔ずれ、リトライ、部分失敗、ページ送り、削除のテストがある。
 11. **AC-11** 有料生成・有料LLM・動画制作・YouTube投稿APIは呼び出されない。
 12. **AC-12** 最終報告は「実装済み」「実データ確認済み」「未確認」「意図的に未実装」を分ける。
-
-13. **AC-13** [PostgreSQL専用方針](../architecture/database-policy.md)に従い、通常DBへの誤接続を初期化前に拒否し、DB依存処理・テスト・CIをPostgreSQLのみで実行する。
+13. **AC-13** [PostgreSQL専用DB方針](../architecture/database-policy.md)に従い、DB依存処理・テスト・CIをPostgreSQLのみで検証する。通常DBへのテスト誤接続を破壊的処理より前に拒否し、SQLiteへの代替や第二DBの追加がない。
 
 ## 関連文書
 
 - [初回実装の範囲](../project/mvp-scope.md)
+- [PostgreSQL専用DB方針と詳細確認項目](../architecture/database-policy.md)
 - [実装順](implementation-plan.md)
 
 [文書一覧へ戻る](../README.md)

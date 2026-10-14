@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BGM local analysis v1 (finalized result)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version","run_id","job_id","analysis_status","source","provenance","coverage","measurements","evidence","interpretation","human_review"],
+  "properties": {
+    "schema_version": {"const":"1.0.0"},
+    "run_id": {"type":"string","format":"uuid"},
+    "job_id": {"type":"string","format":"uuid"},
+    "analysis_status": {"const":"complete"},
+    "human_review": {"const":"pending"},
+    "source": {
+      "type":"object","additionalProperties":false,
+      "required":["subject_type","origin","youtube_video_id","sha256","duration_seconds","rights_record_id"],
+      "properties": {
+        "subject_type":{"enum":["own","competitor","synthetic"]},
+        "origin":{"enum":["youtube_download","local_copy","synthetic"]},
+        "youtube_video_id":{"type":["string","null"],"pattern":"^[A-Za-z0-9_-]{11}$"},
+        "sha256":{"$ref":"#/$defs/sha256"},
+        "duration_seconds":{"type":"number","exclusiveMinimum":0},
+        "rights_record_id":{"type":"string","minLength":1,"maxLength":200}
+      }
+    },
+    "provenance": {
+      "type":"object","additionalProperties":false,
+      "required":["analyzed_at","code_revision","tool_versions","profile_id","profile_sha256","prompt_id","prompt_sha256","model_id","model_identity_status","reasoning_effort","measurement_pack_sha256"],
+      "properties": {
+        "analyzed_at":{"type":"string","format":"date-time"},
+        "code_revision":{"type":"string","minLength":1,"maxLength":200},
+        "tool_versions":{"type":"object","minProperties":1,"maxProperties":20,"additionalProperties":{"type":"string","maxLength":200}},
+        "profile_id":{"const":"analysis-profile-v1"},
+        "profile_sha256":{"$ref":"#/$defs/sha256"},
+        "prompt_id":{"const":"review-v1"},
+        "prompt_sha256":{"$ref":"#/$defs/sha256"},
+        "model_id":{"type":["string","null"],"minLength":1,"maxLength":200},
+        "model_identity_status":{"enum":["recorded","not_exposed"]},
+        "reasoning_effort":{"type":["string","null"],"maxLength":100},
+        "measurement_pack_sha256":{"$ref":"#/$defs/sha256"}
+      },
+      "allOf":[{"if":{"properties":{"model_identity_status":{"const":"recorded"}}},"then":{"properties":{"model_id":{"type":"string","minLength":1}}}}]
+    },
+    "coverage": {
+      "type":"array","minItems":1,"maxItems":100,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["method","start_seconds","end_seconds","scope","status"],
+        "properties":{
+          "method":{"type":"string","minLength":1,"maxLength":200},
+          "start_seconds":{"type":"number","minimum":0},
+          "end_seconds":{"type":"number","exclusiveMinimum":0},
+          "scope":{"enum":["full","sampled"]},
+          "status":{"enum":["complete","partial","unavailable"]}
+        }
+      }
+    },
+    "measurements":{"type":"array","minItems":1,"maxItems":20000,"items":{"$ref":"#/$defs/measurement"}},
+    "evidence":{
+      "type":"array","maxItems":50,
+      "items":{
+        "type":"object","additionalProperties":false,
+        "required":["id","kind","time_seconds","sha256"],
+        "properties":{
+          "id":{"$ref":"#/$defs/id"},
+          "kind":{"enum":["frame","thumbnail","human_note","context"]},
+          "time_seconds":{"type":["number","null"],"minimum":0},
+          "sha256":{"$ref":"#/$defs/sha256"}
+        }
+      }
+    },
+    "interpretation":{"$ref":"#/$defs/interpretation"}
+  },
+  "$defs":{
+    "id":{"type":"string","pattern":"^[a-z][a-z0-9_-]{0,79}$"},
+    "sha256":{"type":"string","pattern":"^[0-9a-f]{64}$"},
+    "text":{"type":"string","minLength":1,"maxLength":4000},
+    "measurement":{
+      "type":"object","additionalProperties":false,
+      "required":["id","metric","start_seconds","end_seconds","value","unit","kind","method","reason"],
+      "properties":{
+        "id":{"$ref":"#/$defs/id"},
+        "metric":{"enum":["duration_seconds","integrated_loudness_lufs","loudness_range_lu","sample_peak_dbfs","true_peak_dbtp","silence_total_seconds","leading_silence_seconds","trailing_silence_seconds","silence_interval_seconds","rms_dbfs","tempo_bpm","spectral_centroid_hz","low_band_ratio","high_band_ratio"]},
+        "start_seconds":{"type":"number","minimum":0},
+        "end_seconds":{"type":"number","exclusiveMinimum":0},
+        "value":{"type":["number","null"]},
+        "unit":{"enum":["s","LUFS","LU","dBFS","dBTP","BPM","Hz","ratio"]},
+        "kind":{"enum":["measured","estimated","unavailable"]},
+        "method":{"type":"string","minLength":1,"maxLength":200},
+        "reason":{"type":["string","null"],"maxLength":500}
+      },
+      "allOf":[{"if":{"properties":{"kind":{"const":"unavailable"}}},"then":{"properties":{"value":{"type":"null"},"reason":{"type":"string","minLength":1}}},"else":{"properties":{"value":{"type":"number"}}}}]
+    },
+    "interpretation":{
+      "type":"object","additionalProperties":false,
+      "required":["summary","viewed_evidence_ids","observations","limitations","next_experiments"],
+      "properties":{
+        "summary":{"$ref":"#/$defs/text"},
+        "viewed_evidence_ids":{"type":"array","maxItems":20,"uniqueItems":true,"items":{"$ref":"#/$defs/id"}},
+        "observations":{
+          "type":"array","maxItems":20,
+          "items":{
+            "type":"object","additionalProperties":false,
+            "required":["id","category","kind","text","evidence_refs","alternative_explanations","next_check","confidence"],
+            "properties":{
+              "id":{"$ref":"#/$defs/id"},
+              "category":{"enum":["audio","visual","alignment","exploratory"]},
+              "kind":{"enum":["visual_observation","human_observation","hypothesis"]},
+              "text":{"$ref":"#/$defs/text"},
+              "evidence_refs":{"type":"array","minItems":1,"maxItems":30,"uniqueItems":true,"items":{"$ref":"#/$defs/id"}},
+              "alternative_explanations":{"type":"array","maxItems":5,"items":{"$ref":"#/$defs/text"}},
+              "next_check":{"$ref":"#/$defs/text"},
+              "confidence":{"enum":["low","medium","high","unassessed"]}
+            }
+          }
+        },
+        "limitations":{"type":"array","minItems":1,"maxItems":30,"items":{"$ref":"#/$defs/text"}},
+        "next_experiments":{"type":"array","maxItems":3,"items":{"$ref":"#/$defs/text"}}
+      }
+    }
+  }
+}

@@ -4,13 +4,13 @@
 > 状態：作業1の構成を採用・実装済み（実データ未確認）\
 > 読む場面：環境構築・Laravel構成・PostgreSQLの設計をするとき  
 > 整理日：2026-10-14  
-> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L17–L22、L222–L237。見出し・参照リンクを整理し、要件の内容は引き継いでいる。
+> 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L17–L22、L222–L237。DB方式は利用者の追加指示を反映し、その他の要件は引き継いでいる。
 
 ## 技術前提
 
 ユーザー資料の指定：Windows / WSL / Docker、WebとDBを分離、PHP / Laravel、公式Googleクライアントライブラリ、YouTube Data API、APIキーのみ、OAuthなし。[U2](../references/sources.md#u2)
 
-DBは開発・通常運用・DB依存テスト・CIを含めPostgreSQLのみ。[ARC-002](database-policy.md)に従い、通常データを同じアプリDBへ集約し自動テストだけを隔離する。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
+DBは開発・通常運用・DB依存テスト・CI・将来の分析結果取込を含めPostgreSQLのみ。接続設定とテストの隔離は[ARC-002](database-policy.md)を正本とし、通常データを同じアプリDBへ集約し自動テストだけを隔離する。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
 
 ## データ設計は必要最小限にする
 
@@ -38,6 +38,7 @@ PHP 8.5.10、Laravel 13、PostgreSQL 18、Blade、公式`google/apiclient`を採
 
 ## 関連文書
 
+- [PostgreSQL専用DB方針](database-policy.md)
 - [初回実装の範囲](../project/mvp-scope.md)
 - [API取得仕様](../integrations/youtube-data-api.md)
 - [保存期限](../compliance/data-retention.md)

@@ -1,0 +1,14 @@
+{
+  "ttl_seconds": 86400,
+  "max_ready": 2,
+  "max_bytes": 2147483648,
+  "max_duration_seconds": 7200,
+  "min_free_bytes": 1073741824,
+  "operation_seconds": 1200,
+  "download_seconds": 600,
+  "download_retries": 2,
+  "transfer_bytes_per_second": 4194304,
+  "max_transfer_bytes": 2147483648,
+  "max_channels": 8,
+  "max_sample_rate": 192000
+}

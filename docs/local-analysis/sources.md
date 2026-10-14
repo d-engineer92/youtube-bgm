@@ -55,3 +55,17 @@ YouTube Data API由来データの扱いは [POL-001](../compliance/data-retenti
 個別の競合素材の取得・分析許諾、Codexへのテキスト・画像送信条件、実際のモデル識別子、yt-dlpの対象URL対応、音楽的特徴の推定精度は今回の文書作成では検証していない。
 
 [入口へ戻る](README.md)
+
+## LA-1・LA-2実装時の確認（2026-10-14）
+
+上記S-L1・S-L3・S-L4・S-L5を今回の実装時に再確認した。Codexのrepo-localスキルと明示呼び出しの設定は[公式Build skills](https://learn.chatgpt.com/docs/build-skills)の案内を使用。FFmpegフィルターの実際の出力は固定版7.1.5で人工素材により確認。yt-dlpは2026.8.19の固定版のhelp/versionで採用オプションを確認したが、実動画の取得は行っていない。
+
+Python 3.12.15、jsonschema 4.26.0、yt-dlp 2026.8.19、FFmpeg/ffprobe 7.1.5のDocker環境を使用。直接・間接Python依存はrequirements.lock、コンテナーベースはDockerfileのdigestで固定する。実モデル識別子と推論設定は未取得でnullと記録。バッチからモデルAPIやDBへの接続は行わない。
+
+## EJS依存と再試行修正の確認（2026-10-14）
+
+[yt-dlp公式EJS案内](https://github.com/yt-dlp/yt-dlp/wiki/EJS)を再確認した。YouTube対応にはJSランタイムとEJSが必要で、Nodeは22以上が対応範囲、明示的な有効化が必要。PyPIのEJS同梱パッケージを直接導入する場合は、採用yt-dlp版のpyproject.tomlが指定する版に合わせる。
+
+[2026.08.19のpyproject.toml](https://github.com/yt-dlp/yt-dlp/blob/2026.08.19/pyproject.toml)と実際のパッケージメタデータはyt-dlp-ejs==0.8.0を指定している。DockerではNode 24.21.0の公式イメージをdigestで固定し、EJS 0.8.0はrequirements.lockに追加した。最新版への自動更新、GitHub/npmからの実行時EJS取得は採用しない。doctorで同梱スクリプトを採用yt-dlpの期待ハッシュと照合し、固定Nodeの権限制限付きロードとCLI設定まで検査した。
+
+公式案内は依存の導入根拠であり、個別URLの取得許可や取得成功の証明ではない。利用者から素材・承認URLとも未提供と回答があり、実YouTube取得と実曲の音声のみ/画像付き検証は未確認。人工動画のフレーム途中停止・再試行と出力/原本保護はREADMEの実行記録を参照する。

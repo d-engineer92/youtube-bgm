@@ -1,0 +1,6 @@
+interface:
+  display_name: "BGMローカル分析"
+  short_description: "指定した許諾済み素材を計測・考察し、検証済み結果を保存して一時素材を削除"
+  default_prompt: "$bgm-local-analyze で指定したジョブを処理してください。"
+policy:
+  allow_implicit_invocation: false

@@ -57,3 +57,9 @@
 ブラウザー自動確認も専用test-webとyoutube_bgm_testへ移した。サーバー起動はDB識別検査の後に専用DBを初期化し、各HTTP要求もセッション・期限削除処理より前に検査する。スクリプトは副作用のないhealth要求で識別ヘッダーを確認し、通常Web指定をブラウザー起動・書込み前に拒否した。検索・続き取得・ウォッチ・比較目的・画面幅の確認は専用テストDBで成功。PHPUnitとは直列で実行する。
 
 PostgreSQL再テストは56件・195アサーション成功。PintとComposer定義検証も成功。通常DBをテスト用に初期化・削除していない。SQLite候補ファイルはリポジトリ内で見つからず、既存ファイルを削除していない。GitHub上のアプリCI実行、実API取得は未確認。ローカル分析のファイル出力・DB取込延期は維持する。
+
+## アプリ変更の保存とGitHub CI（2026-10-14）
+
+未コミットの88ファイルをローカル保全後、f75d1b0として[PR #3](https://github.com/d-engineer92/youtube-bgm/pull/3)へ保存した。環境の実キー・素材・DB実データを追跡対象へ含めていない。通常DBへのテスト操作は実施していない。
+
+ローカルで再実行した結果は56件・195アサーション成功。これとは別に、[GitHub pull_request CI](https://github.com/d-engineer92/youtube-bgm/actions/runs/38506925269)でも56件・195アサーション成功をログで確認した。CIの実接続はPDO pgsql / youtube_bgm_test / bgm_test / PostgreSQL 18.6。push CIも成功。GitHub CIの未確認は解消したが、実YouTube API取得・実データは引き続き未確認である。

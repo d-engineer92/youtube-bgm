@@ -2,6 +2,16 @@
 
 このフォルダーが初回実装の仕様入口。**作業1の取得・比較基盤を実装済み。モック検証済み、実API疎通・実データ検証と作業2は未実施。** 起動手順は[プロジェクトREADME](../README.md#起動手順windows--wsl--docker)、検証記録は[AC一覧](development/acceptance-criteria.md#作業1の検証記録2026-10-14)を参照。
 
+## 次の改修：キーワード不要の探索入口
+
+2026-10-14の追加依頼。検索語・用途・ジャンルを未入力で始め、英語圏想定の結果を日本語で理解できる入口を優先する。**仕様追加のみで、EXP機能は未実装。**
+
+- [専用入口・範囲（EXP-001）](discovery/README.md)
+- [利用体験（EXP-002）](discovery/experience.md)／[収集・API・復旧（EXP-003）](discovery/collection.md)
+- [DB・観測・保存（EXP-004）](discovery/data-and-retention.md)／[候補語拡張（EXP-005）](discovery/keyword-expansion.md)
+- [実装依頼と受入条件（EXP-006）](discovery/implementation.md)
+- [初期カタログ](discovery/seed-catalog-v1.json)／[出典（EXP-007）](discovery/sources.md)／[決定記録DEC-004](decisions/0004-guided-discovery.md)
+
 ## 読む順番
 
 最初に[初回実装の範囲](project/mvp-scope.md)を読み、以下の表から対象作業の文書を選ぶ。受入確認では[AC一覧](development/acceptance-criteria.md)の該当項目を読む。旧v1・v2を含め、全docsを毎回一括取得しない。
@@ -10,6 +20,7 @@
 
 | 作業 | 必要な文書 | 主な受入条件 |
 |---|---|---|
+| キーワード不要の探索入口 | [EXP専用入口](discovery/README.md)から作業に必要な仕様だけを読む | EXP-AC01〜20と既存回帰 |
 | 開発環境・DB | [構成とデータ](architecture/system-and-data.md)、[PostgreSQL専用方針](architecture/database-policy.md)、[保存期限](compliance/data-retention.md) | AC-09・10・12・13 |
 | テスト・CI・接続設定 | [PostgreSQL専用方針](architecture/database-policy.md)、[AC一覧](development/acceptance-criteria.md) | AC-10・12・13 |
 | API取得・日次更新 | [API](integrations/youtube-data-api.md)、[保存期限](compliance/data-retention.md)、[数値](research/metrics.md)、[画面A](features/discovery.md) | AC-01〜04・09・10 |
@@ -66,6 +77,7 @@ API由来データの保存・表示・出力を変える作業では、表の�
 | [DEC-001：初回を調査・企画支援へ限定](decisions/0001-research-first-mvp.md) | v1から範囲を縮小した理由 |
 | [DEC-002：責務別の文書構成](decisions/0002-modular-documentation.md) | 今回の分割方針とトレードオフ |
 | [DEC-003：素材を保持しないローカル分析](decisions/0003-local-media-analysis.md) | 追加分析と初回の境界、スキルとバッチの分担 |
+| [DEC-004：検索語未定からの探索](decisions/0004-guided-discovery.md) | 入口改修の優先順位と英語圏想定・日本語案内 |
 | [移行対応表](references/migration-map.md) | 元v2の対応箇所、原本のハッシュ |
 | [archiveの案内](archive/README.md) | 凍結原本。通常の実装対象外 |
 

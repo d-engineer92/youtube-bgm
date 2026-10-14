@@ -22,3 +22,9 @@ token*.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Local analysis: private requests, media, evidence and actual results
+/var/local-analysis/
+/.venv-local-analysis/
+__pycache__/
+*.py[cod]

@@ -1,0 +1,19 @@
+{
+  "profile_id": "analysis-profile-v1",
+  "version": "1.0.0",
+  "audio_stream": "0:a:0",
+  "decode": "pcm_f32le; native sample rate and channel count",
+  "rms_window_seconds": 10,
+  "rms_method": "mean square over all channels and decoded samples; 20log10(sqrt(mean))",
+  "silence_dbfs": -50,
+  "silence_min_seconds": 0.5,
+  "silence_method": "every channel sample amplitude below threshold; contiguous intervals; union",
+  "loudness_filter": "ebur128=peak=true:framelog=verbose",
+  "true_peak_method": "FFmpeg ebur128 libswresample oversampling; native channel layout",
+  "lra_min_seconds": 3,
+  "frame_times": [0, 5, 10, 30],
+  "frame_height_limit": 360,
+  "frame_method": "select first decoded frame at or after requested timestamp; showinfo PTS",
+  "numeric_decimals": 6,
+  "comparison_absolute_tolerance": 0.000001
+}

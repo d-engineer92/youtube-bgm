@@ -55,3 +55,9 @@ YouTube Data API由来データの扱いは [POL-001](../compliance/data-retenti
 個別の競合素材の取得・分析許諾、Codexへのテキスト・画像送信条件、実際のモデル識別子、yt-dlpの対象URL対応、音楽的特徴の推定精度は今回の文書作成では検証していない。
 
 [入口へ戻る](README.md)
+
+## LA-1・LA-2実装時の確認（2026-10-14）
+
+上記S-L1・S-L3・S-L4・S-L5を今回の実装時に再確認した。Codexのrepo-localスキルと明示呼び出しの設定は[公式Build skills](https://learn.chatgpt.com/docs/build-skills)の案内を使用。FFmpegフィルターの実際の出力は固定版7.1.5で人工素材により確認。yt-dlpは2026.8.19の固定版のhelp/versionで採用オプションを確認したが、実動画の取得は行っていない。
+
+Python 3.12.15、jsonschema 4.26.0、yt-dlp 2026.8.19、FFmpeg/ffprobe 7.1.5のDocker環境を使用。直接・間接Python依存はrequirements.lock、コンテナーベースはDockerfileのdigestで固定する。実モデル識別子と推論設定は未取得でnullと記録。バッチからモデルAPIやDBへの接続は行わない。

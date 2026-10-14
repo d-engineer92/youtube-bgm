@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+BGM_REPO_DIR=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
+# Offline by default. Only an explicit download command permits network access.
+BGM_NETWORK=none
+for BGM_ARG in "$@"; do
+    if [ "$BGM_ARG" = download ]; then BGM_NETWORK=bridge; fi
+done
+if [ -n "${BGM_ORIGINALS:-}" ]; then
+    if [ ! -d "$BGM_ORIGINALS" ]; then echo "Originals directory missing" >&2; exit 1; fi
+    set -- --mount "type=bind,src=$BGM_ORIGINALS,dst=/originals,readonly" youtube-bgm-local-analysis:la1-la2 "$@"
+else
+    set -- youtube-bgm-local-analysis:la1-la2 "$@"
+fi
+exec docker run --rm --pull=never --user "$(id -u):$(id -g)" --network "$BGM_NETWORK" \
+    --volume "$BGM_REPO_DIR:/repo" --workdir /repo \
+    "$@"

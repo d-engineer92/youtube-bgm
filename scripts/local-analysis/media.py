@@ -11,7 +11,7 @@ import sys
 import time
 import uuid
 
-from common import Failure, REPO, digest, read_json, regular, write_json
+from common import Failure, REPO, digest, read_json, regular, write_bytes, write_json
 
 SAFE_INPUT = [
     "-protocol_whitelist",
@@ -249,7 +249,7 @@ def decode(path, work, info, profile, limits):
     return duration, peak, windows, intervals
 
 
-def measure(path, work, profile, limits, mode):
+def measure(path, work, profile, limits, mode, frame_checkpoint=lambda _: None):
     info = probe(path, work, limits)
     duration, peak, windows, intervals = decode(path, work, info, profile, limits)
     _, logs = external(
@@ -385,12 +385,19 @@ def measure(path, work, profile, limits, mode):
                 for t in profile["frame_times"] + [duration / 2, max(0, duration - 1)]
             )
         )
+        # Engine verified this job's work owner before calling measure. Never let
+        # FFmpeg overwrite old images or follow an existing image link. A retry
+        # gets a fresh owned subdirectory; leftovers stay until verified cleanup.
+        attempt = work / ("frames-" + str(uuid.uuid4()))
+        attempt.mkdir(mode=0o700)
         for i, t in enumerate(times):
             name = f"frame-f{i:02d}.png"
+            candidate = attempt / name
             _, trace = external(
                 [
                     "ffmpeg",
                     "-nostdin",
+                    "-n",
                     "-hide_banner",
                     "-v",
                     "info",
@@ -406,17 +413,22 @@ def measure(path, work, profile, limits, mode):
                     "1",
                     "-fps_mode",
                     "passthrough",
-                    str(work / name),
+                    str(candidate),
                 ],
                 work,
                 limits,
             )
             match = re.search(r"\bpts_time:([-\d.]+)", trace)
-            if not match or not (work / name).exists():
+            if not match or not candidate.exists():
                 raise Failure("frame_extract_error")
             pts = float(match[1])
             if not 0 <= pts <= duration:
                 raise Failure("frame_pts_outside_audio")
+            regular(candidate)
+            # Durable replacement accepts only regular, unlinked images at the
+            # fixed job-local name. Originals and committed results are elsewhere.
+            write_bytes(work / name, candidate.read_bytes())
+            frame_checkpoint("after_frame_publish")
             evidence.append(
                 {
                     "id": f"f{i:02d}",

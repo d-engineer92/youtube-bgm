@@ -1,6 +1,7 @@
 import copy
 import csv
 import io
+import importlib.metadata
 import math
 import multiprocessing
 import os
@@ -51,6 +52,32 @@ def lock_worker(root, queue, release):
     with engine.locked():
         queue.put("locked")
         release.wait(10)
+
+
+def synthetic_video(path):
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=blue:size=64x64:rate=10",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:sample_rate=8000",
+            "-t",
+            "3",
+            "-c:v",
+            "ffv1",
+            "-c:a",
+            "pcm_s16le",
+            str(path),
+        ],
+        check=True,
+    )
 
 
 class PipelineFixture:
@@ -512,7 +539,12 @@ class PipelineTest(PipelineFixture, unittest.TestCase):
         self.assertIn("--ignore-config", calls[0])
         self.assertIn("--no-playlist", calls[0])
         self.assertIn("--no-js-runtimes", calls[0])
+        self.assertEqual(
+            "node:/usr/local/bin/node", calls[0][calls[0].index("--js-runtimes") + 1]
+        )
         self.assertIn("--no-remote-components", calls[0])
+        self.assertIn("--no-plugin-dirs", calls[0])
+        self.assertIn("--no-update", calls[0])
         self.assertIn("never", calls[0])
         self.assertNotIn("--cookies", calls[0])
         self.assertIn("--max-filesize", calls[1])
@@ -525,6 +557,77 @@ class PipelineTest(PipelineFixture, unittest.TestCase):
                 self.engine.download(self.request, target, s)
 
 
+class RuntimeTest(PipelineFixture, unittest.TestCase):
+    def test_doctor_verifies_offline_node_ejs_and_fixed_settings(self):
+        versions = self.engine.tool_versions()
+        self.assertEqual("v24.21.0", versions["node"])
+        self.assertEqual("0.8.0", versions["yt-dlp-ejs"])
+
+    def test_doctor_rejects_missing_wrong_or_tampered_js_dependencies(self):
+        real_version = importlib.metadata.version
+        real_run = subprocess.run
+
+        for failure in [
+            "missing_ejs",
+            "wrong_ejs",
+            "incompatible_ejs",
+            "tampered_ejs",
+            "missing_node",
+            "wrong_node",
+            "node_options",
+        ]:
+            with self.subTest(failure=failure):
+
+                def version(package):
+                    if package == "yt-dlp-ejs":
+                        if failure == "missing_ejs":
+                            raise importlib.metadata.PackageNotFoundError(package)
+                        if failure == "wrong_ejs":
+                            return "0.0.0"
+                    return real_version(package)
+
+                def run(argv, *args, **kwargs):
+                    if argv == ["/usr/local/bin/node", "--version"]:
+                        if failure == "missing_node":
+                            raise FileNotFoundError()
+                        if failure == "wrong_node":
+                            return subprocess.CompletedProcess(argv, 0, "v18.0.0\n", "")
+                    return real_run(argv, *args, **kwargs)
+
+                with (
+                    patch("engine.importlib.metadata.version", side_effect=version),
+                    patch("engine.subprocess.run", side_effect=run),
+                ):
+                    if failure == "incompatible_ejs":
+                        with patch(
+                            "engine.importlib.metadata.requires",
+                            return_value=["yt-dlp-ejs==0.0.0"],
+                        ):
+                            with self.assertRaisesRegex(
+                                Failure, "ejs_compatibility_mismatch"
+                            ):
+                                self.engine.tool_versions()
+                    elif failure == "tampered_ejs":
+                        with patch(
+                            "yt_dlp_ejs.yt.solver.lib", return_value="invalid solver"
+                        ):
+                            with self.assertRaisesRegex(
+                                Failure, "ejs_script_hash_mismatch"
+                            ):
+                                self.engine.tool_versions()
+                    elif failure == "node_options":
+                        with patch.dict(
+                            os.environ, {"NODE_OPTIONS": "--require=/tmp/untrusted.js"}
+                        ):
+                            with self.assertRaisesRegex(
+                                Failure, "unsafe_javascript_settings"
+                            ):
+                                self.engine.tool_versions()
+                    else:
+                        with self.assertRaises(Failure):
+                            self.engine.tool_versions()
+
+
 class VisualAndProcessTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
@@ -534,31 +637,9 @@ class VisualAndProcessTest(unittest.TestCase):
     def tearDown(self):
         self.temp.cleanup()
 
-    def test_authorized_synthetic_frames_pts_and_cleanup(self):
-        original = self.base / "own.mkv"
-        subprocess.run(
-            [
-                "ffmpeg",
-                "-v",
-                "error",
-                "-f",
-                "lavfi",
-                "-i",
-                "color=blue:size=64x64:rate=10",
-                "-f",
-                "lavfi",
-                "-i",
-                "sine=frequency=440:sample_rate=8000",
-                "-t",
-                "3",
-                "-c:v",
-                "ffv1",
-                "-c:a",
-                "pcm_s16le",
-                str(original),
-            ],
-            check=True,
-        )
+    def staged_visual(self):
+        original = self.base / (str(uuid.uuid4()) + ".mkv")
+        synthetic_video(original)
         req = {
             "schema_version": "1.0.0",
             "job_id": str(uuid.uuid4()),
@@ -579,11 +660,10 @@ class VisualAndProcessTest(unittest.TestCase):
         write_json(manifest, req)
         s = self.engine.submit(manifest)
         self.engine.stage(req["job_id"])
-        s = self.engine.prepare(req["job_id"])
+        return original, self.engine.get(s["job_id"])
+
+    def finish_visual(self, s, original):
         pack = self.engine.load_pack(s)
-        self.assertGreaterEqual(len(pack["evidence"]), 2)
-        for e in pack["evidence"]:
-            self.assertTrue(0 <= e["time_seconds"] <= 3)
         insights = {
             "summary": "人工画像は未確認。音量だけを確認。",
             "viewed_evidence_ids": [],
@@ -593,10 +673,118 @@ class VisualAndProcessTest(unittest.TestCase):
         }
         path = self.engine.path(s, "work") / "insights.json"
         write_json(path, insights)
-        done = self.engine.finalize(req["job_id"], path)
+        done = self.engine.finalize(s["job_id"], path)
         self.assertEqual("DONE", done["state"])
+        self.assertEqual("deleted", done["cleanup_status"])
         self.assertTrue(original.exists())
-        self.assertFalse(self.engine.path(s, "work").exists())
+        for area in AREAS:
+            self.assertFalse(self.engine.path(s, area).exists())
+        result = self.engine.result_path(done)
+        data = validate_bundle(result, pack, s["pack_hash"], "audio_visual")
+        for name, contents in exports(data).items():
+            self.assertEqual(contents, (result / name).read_bytes())
+        return done
+
+    def test_authorized_synthetic_frames_pts_and_cleanup(self):
+        original, staged = self.staged_visual()
+        before = (digest(original), original.stat().st_size)
+        s = self.engine.prepare(staged["job_id"])
+        pack = self.engine.load_pack(s)
+        self.assertGreaterEqual(len(pack["evidence"]), 2)
+        for e in pack["evidence"]:
+            self.assertTrue(0 <= e["time_seconds"] <= 3)
+        self.finish_visual(s, original)
+        self.assertEqual(before, (digest(original), original.stat().st_size))
+
+    def test_frame_retry_after_real_sigkill_commits_and_cleans_same_job(self):
+        original, staged = self.staged_visual()
+        before = (digest(original), original.stat().st_size)
+        outside = self.base / "unmanaged.png"
+        outside.write_bytes(b"unmanaged file must stay unchanged")
+        outside_hash = digest(outside)
+
+        def worker():
+            def stop(point):
+                if point == "after_frame_publish":
+                    os.kill(os.getpid(), signal.SIGKILL)
+
+            engine = Engine(self.engine.root, checkpoint=stop)
+            with engine.locked():
+                engine.prepare(staged["job_id"])
+
+        child = multiprocessing.Process(target=worker)
+        child.start()
+        child.join(20)
+        if child.is_alive():
+            child.kill()
+            child.join()
+            self.fail("Frame checkpoint was not reached")
+        self.assertEqual(-signal.SIGKILL, child.exitcode)
+        work = self.engine.path(staged, "work")
+        self.assertTrue((work / "frame-f00.png").is_file())
+        self.assertFalse((work / "measurement-pack.json").exists())
+        self.assertGreaterEqual(len(list(work.glob("frames-*/frame-*.png"))), 1)
+        with self.engine.locked():
+            prepared = self.engine.prepare(staged["job_id"])
+            self.assertEqual(staged["run_id"], prepared["run_id"])
+            self.finish_visual(prepared, original)
+        self.assertEqual(before, (digest(original), original.stat().st_size))
+        self.assertEqual(outside_hash, digest(outside))
+
+    def test_frame_retry_after_second_extract_failure(self):
+        original, staged = self.staged_visual()
+        before = (digest(original), original.stat().st_size)
+        real_external = media.external
+        frames = 0
+
+        def fail_second(argv, *args, **kwargs):
+            nonlocal frames
+            if "-frames:v" in argv:
+                frames += 1
+                if frames == 2:
+                    raise Failure("injected_frame_failure")
+            return real_external(argv, *args, **kwargs)
+
+        with patch("media.external", side_effect=fail_second):
+            with self.assertRaisesRegex(Failure, "injected_frame_failure"):
+                self.engine.prepare(staged["job_id"])
+        self.assertEqual("ANALYSIS_FAILED", self.engine.get(staged["job_id"])["state"])
+        self.assertTrue((self.engine.path(staged, "work") / "frame-f00.png").exists())
+        prepared = self.engine.prepare(staged["job_id"])
+        self.assertEqual(staged["run_id"], prepared["run_id"])
+        self.finish_visual(prepared, original)
+        self.assertEqual(before, (digest(original), original.stat().st_size))
+
+    def test_frame_replacement_rejects_links_and_foreign_owner(self):
+        for kind in ["symlink", "hardlink", "foreign_owner"]:
+            with self.subTest(kind=kind):
+                original, staged = self.staged_visual()
+                self.engine.move(staged, "downloads", "work")
+                staged["state"] = "ANALYZING"
+                self.engine.save(staged)
+                work = self.engine.path(staged, "work")
+                outside = self.base / (str(uuid.uuid4()) + ".png")
+                outside.write_bytes(b"protected outside material")
+                before = (
+                    outside.read_bytes(),
+                    digest(original),
+                    original.stat().st_size,
+                )
+                target = work / "frame-f00.png"
+                if kind == "symlink":
+                    target.symlink_to(outside)
+                elif kind == "hardlink":
+                    os.link(outside, target)
+                else:
+                    owner = read_json(work / ".owner.json")
+                    owner["job_id"] = str(uuid.uuid4())
+                    write_json(work / ".owner.json", owner)
+                with self.assertRaises(Failure):
+                    self.engine.prepare(staged["job_id"])
+                self.assertEqual(
+                    before,
+                    (outside.read_bytes(), digest(original), original.stat().st_size),
+                )
 
     def test_supervisor_stops_timeouts_and_children_after_parent_death(self):
         work = self.base / "work"

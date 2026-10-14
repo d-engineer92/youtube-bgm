@@ -35,6 +35,25 @@ AREAS = ["tmp/downloading", "downloads", "work", "results/.staging"]
 FINAL = {"DONE", "EXPIRED"}
 
 
+def download_runtime_options():
+    settings = read_json(REPO / "config/local-analysis/toolchain.json")
+    if (
+        settings.get("javascript_runtime") != "node"
+        or settings.get("javascript_runtime_path") != "/usr/local/bin/node"
+        or settings.get("remote_components") != []
+        or os.environ.get("NODE_OPTIONS")
+    ):
+        raise Failure("unsafe_javascript_settings")
+    return [
+        "--no-js-runtimes",  # Reset defaults, then enable only the pinned runtime.
+        "--js-runtimes",
+        "node:/usr/local/bin/node",
+        "--no-remote-components",
+        "--no-plugin-dirs",
+        "--no-update",
+    ]
+
+
 def youtube_id(value):
     import re
 
@@ -365,6 +384,63 @@ class Engine:
                 raise Failure("tool_version_mismatch:" + package)
         versions["yt-dlp"] = expected["yt_dlp"]
         versions["jsonschema"] = importlib.metadata.version("jsonschema")
+        runtime_options = download_runtime_options()
+        if not any(
+            requirement.split(";", 1)[0].strip()
+            == "yt-dlp-ejs==" + expected["yt_dlp_ejs"]
+            for requirement in importlib.metadata.requires("yt-dlp") or []
+        ):
+            raise Failure("ejs_compatibility_mismatch")
+        try:
+            import yt_dlp
+            from yt_dlp.extractor.youtube.jsc._builtin import vendor
+            from yt_dlp_ejs.yt import solver
+
+            # The pinned yt-dlp release authenticates its bundled solver with
+            # these hashes too. Reject missing/tampered scripts; never fetch them.
+            scripts = []
+            for name, code in [("lib", solver.lib()), ("core", solver.core())]:
+                if (
+                    hashlib.sha3_512(code.encode()).hexdigest()
+                    != vendor.HASHES[f"yt.solver.{name}.min.js"]
+                ):
+                    raise Failure("ejs_script_hash_mismatch")
+                scripts.append(code)
+            options = yt_dlp.parse_options(["--ignore-config", *runtime_options])
+            if (
+                options.ydl_opts["js_runtimes"]
+                != {"node": {"path": "/usr/local/bin/node"}}
+                or options.ydl_opts["remote_components"]
+                or options.options.plugin_dirs
+                or options.options.update_self
+            ):
+                raise Failure("unsafe_javascript_settings")
+            node = subprocess.run(
+                [expected["javascript_runtime_path"], "--version"],
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
+            ).stdout.strip()
+            if node != expected["node_version"]:
+                raise Failure("tool_version_mismatch:node")
+            smoke = subprocess.run(
+                [expected["javascript_runtime_path"], "--permission", "-"],
+                input=scripts[0]
+                + "\nObject.assign(globalThis,lib);\n"
+                + scripts[1]
+                + "\nif(typeof jsc !== 'function') throw Error('missing solver'); console.log('ejs-ready');\n",
+                capture_output=True,
+                text=True,
+                timeout=10,
+                check=True,
+            )
+            if smoke.stdout.strip() != "ejs-ready":
+                raise Failure("ejs_runtime_check_failed")
+        except (ImportError, OSError, subprocess.SubprocessError):
+            raise Failure("javascript_dependency_unavailable") from None
+        versions["node"] = node
+        versions["yt-dlp-ejs"] = expected["yt_dlp_ejs"]
         return versions
 
     def stage(self, jid, network=False):
@@ -504,8 +580,7 @@ class Engine:
             "--no-write-info-json",
             "--no-write-thumbnail",
             "--no-write-subs",
-            "--no-js-runtimes",
-            "--no-remote-components",
+            *download_runtime_options(),
         ]
         # Metadata stays in this owned temporary tree, never in final results or model input.
         out, _ = media.external(
@@ -604,7 +679,12 @@ class Engine:
                     raise Failure("measurement_pack_modified")
                 return s
             results = media.measure(
-                material, work, self.profile, self.private_limits(s), req["mode"]
+                material,
+                work,
+                self.profile,
+                self.private_limits(s),
+                req["mode"],
+                frame_checkpoint=self.checkpoint,
             )
             revision = "source-sha256:" + self.code_hash
             pack = {

@@ -1,0 +1,36 @@
+{
+  "schema_version":"1.0.0",
+  "run_id":"00000000-0000-4000-8000-000000000002",
+  "job_id":"00000000-0000-4000-8000-000000000001",
+  "analysis_status":"complete",
+  "source":{"subject_type":"synthetic","origin":"synthetic","youtube_video_id":null,"sha256":"0000000000000000000000000000000000000000000000000000000000000000","duration_seconds":20,"rights_record_id":"example-only-no-media"},
+  "provenance":{
+    "analyzed_at":"2026-10-14T00:00:00Z","code_revision":"schema-fixture-not-executed","tool_versions":{"fixture":"not-executed"},
+    "profile_id":"analysis-profile-v1","profile_sha256":"0000000000000000000000000000000000000000000000000000000000000000",
+    "prompt_id":"review-v1","prompt_sha256":"0000000000000000000000000000000000000000000000000000000000000000",
+    "model_id":null,"model_identity_status":"not_exposed","reasoning_effort":null,
+    "measurement_pack_sha256":"0000000000000000000000000000000000000000000000000000000000000000"
+  },
+  "coverage":[{"method":"synthetic-example-core","start_seconds":0,"end_seconds":20,"scope":"full","status":"complete"}],
+  "measurements":[
+    {"id":"m01","metric":"duration_seconds","start_seconds":0,"end_seconds":20,"value":20,"unit":"s","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m02","metric":"integrated_loudness_lufs","start_seconds":0,"end_seconds":20,"value":-21,"unit":"LUFS","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m03","metric":"loudness_range_lu","start_seconds":0,"end_seconds":20,"value":1.5,"unit":"LU","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m04","metric":"sample_peak_dbfs","start_seconds":0,"end_seconds":20,"value":-2,"unit":"dBFS","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m05","metric":"true_peak_dbtp","start_seconds":0,"end_seconds":20,"value":-1.8,"unit":"dBTP","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m06","metric":"silence_total_seconds","start_seconds":0,"end_seconds":20,"value":0,"unit":"s","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m07","metric":"leading_silence_seconds","start_seconds":0,"end_seconds":20,"value":0,"unit":"s","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m08","metric":"trailing_silence_seconds","start_seconds":0,"end_seconds":20,"value":0,"unit":"s","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m09","metric":"rms_dbfs","start_seconds":0,"end_seconds":10,"value":-24,"unit":"dBFS","kind":"measured","method":"synthetic-example","reason":null},
+    {"id":"m10","metric":"rms_dbfs","start_seconds":10,"end_seconds":20,"value":-24.2,"unit":"dBFS","kind":"measured","method":"synthetic-example","reason":null}
+  ],
+  "evidence":[],
+  "interpretation":{
+    "summary":"形式確認のための架空例です。実際の音源を計測した結果ではありません。",
+    "viewed_evidence_ids":[],
+    "observations":[{"id":"o01","category":"audio","kind":"hypothesis","text":"この架空例では隣接する10秒窓のRMSが近く、窓平均の音量差は小さい可能性があります。","evidence_refs":["m09","m10"],"alternative_explanations":["窓内の瞬間的な変化や音色の変化は別です。"],"next_check":"実素材では短時間ピークと試聴を照合します。","confidence":"unassessed"}],
+    "limitations":["数値・時刻・ハッシュは書式例であり、計測・推論・素材削除は実施していません。","音の直接聴取、画像確認、テンポや楽器の推定は未実施です。"],
+    "next_experiments":["許諾済み素材を同一プロファイルで計測し、根拠付きの気づきが得られるか確認します。"]
+  },
+  "human_review":"pending"
+}

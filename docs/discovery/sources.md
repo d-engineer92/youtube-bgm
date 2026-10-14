@@ -1,7 +1,7 @@
 # 根拠・確認日・設計判断
 
-> 文書ID：EXP-007  
-> 状態：公開仕様の確認と今回の設計判断を分離／2026-10-14  
+> 文書ID：EXP-007\
+> 状態：公開仕様の確認と今回の設計判断を分離／2026-10-14\
 > 読む場面：外部仕様の再確認、実装レビュー、カタログ更新。
 
 ## ユーザー指定と提供テキスト
@@ -27,7 +27,7 @@
 - [クォータ](https://developers.google.com/youtube/v3/determine_quota_cost)：本文ではsearch.list専用100回/日、他のAPIは別枠。ページ・試行を計上し、PT午前0時に日次リセット。アプリの20検索/日とは別。ページ要約と本文に差がある場合、本文・実プロジェクトの割当を確認する。
 - [Developer Policies Guide](https://developers.google.com/youtube/terms/developer-policies-guide)：単純集計の例と、独自スコア・視聴者属性推定・内容分類等の制約。検索テーマは検索条件の整理として扱い、動画の内容を認定するラベルにしない。追加の派生分析は今回導入しない。
 - [Developer Policies](https://developers.google.com/youtube/terms/developer-policies)：通常の非認可APIデータの保持・更新/削除。今回の28日実装を維持。追加許諾なしの長期保存や、外部スクレイピングでの置換は行わない。
-- [Laravel queues](https://laravel.com/docs/12.x/queues)：DBキューとワーカーの公式機構を利用候補とした根拠。実装ではリポジトリのcomposer.lockが採用する版の仕様も確認し、timeout/retry_after/ジョブ再実行の条件を合わせる。
+- [Laravel queues](https://laravel.com/framework/docs/13.x/queues)：DBキューとワーカーの公式機構を利用候補とした根拠。実装ではリポジトリのcomposer.lockが採用する版の仕様も確認し、timeout/retry_after/ジョブ再実行の条件を合わせる。
 
 ## リポジトリ確認
 
@@ -40,3 +40,7 @@ main=`f85440c35ffe6c65f2d83caf49a32b27f89ceb86`の資料入口・AGENTS・DB方�
 実APIでの候補の質、条件別の重複率、辞書の網羅性、継続観測の結果、視聴者国、RPM、収益性は未確認。カタログは実APIの調査結果ではない。語の追加、期間や尺の変更は結果を見て版管理しながら行う。
 
 [入口へ](README.md)
+
+## EXP実装時の再確認（2026-10-14）
+
+search.list、Developer Policies、採用版Laravel 13のQueuesの公式本文を再確認した。composer.lockのLaravel v13.36.0と公式クライアントを使用。DBキューの実挙動・timeout/retry_after/lease・強制停止後の再配信は専用PostgreSQLで確認した。Cloud Consoleの割当と実APIキーは未提供。[検証記録](verification.md)を参照。

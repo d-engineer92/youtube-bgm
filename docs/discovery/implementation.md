@@ -1,7 +1,7 @@
 # Codex実装依頼・受入条件
 
-> 文書ID：EXP-006  
-> 状態：追加実装仕様（未実装）／2026-10-14  
+> 文書ID：EXP-006\
+> 状態：EXP-A・EXP-B実装済み／2026-10-14。[検証記録](verification.md)。\
 > 読む場面：実装の開始・分割・PRレビュー・完了報告。
 
 ## 依頼の目的
@@ -13,7 +13,7 @@
 ### EXP-A：入口から結果選択まで
 
 1. AGENTS、[専用入口](README.md)、[DB方針](../architecture/database-policy.md)、[保存条件](../compliance/data-retention.md)を確認。
-2. [カタログ](seed-catalog-v1.json)をruntime configへ移し、読み込み検証・版/ハッシュ管理を実装。docsには正本へのリンクを残す。
+2. [カタログ](../../config/discovery-catalog-v1.json)をruntime configへ移し、読み込み検証・版/ハッシュ管理を実装。docsには正本へのリンクを残す。
 3. 保存型プランナーと最小の追加DB、PostgreSQL DBキュー、単一ワーカーを実装。開始/停止/再開/進捗と二重実行防止。
 4. Collector/ApiCallerの共通基盤を拡張し、地域・言語・UTC期間・1ページ取得・詳細のみ再開・run予算を対応。検索エンジンを別実装しない。
 5. 画面Aの最上部に探索入口、テーマ別結果、意味・不明点・次の操作を追加。既存比較/ウォッチ/手動検索へ接続。

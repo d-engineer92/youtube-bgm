@@ -14,6 +14,11 @@ class DemoGateway implements Gateway
     public function fetch(string $method, array $parameters): array
     {
         $videos = $this->videos();
+        if ($method === 'videos') {
+            $videos = array_merge($videos, $this->olderVideos());
+        } elseif ($method === 'search' && isset($parameters['publishedBefore']) && $parameters['publishedBefore'] < now()->subDays(179)->toIso8601ZuluString()) {
+            $videos = $this->olderVideos();
+        }
         $channels = $this->channels();
         if ($method === 'videos' || $method === 'channels') {
             $ids = explode(',', $parameters['id']);
@@ -72,5 +77,20 @@ class DemoGateway implements Gateway
         }
 
         return $out;
+    }
+
+    private function olderVideos(): array
+    {
+        $base = $this->videos()[0];
+        $base['snippet']['publishedAt'] = now()->subYear()->toIso8601ZuluString();
+
+        return array_map(function ($id, $views) use ($base) {
+            $data = $base;
+            $data['id'] = $id;
+            $data['snippet']['title'] = '架空：古い作品の参考例 '.$id;
+            $data['statistics']['viewCount'] = (string) $views;
+
+            return $data;
+        }, ['demoOlder01', 'demoOlder02'], [80000, 80]);
     }
 }

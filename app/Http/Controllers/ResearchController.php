@@ -3,13 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comparison;
+use App\Models\Exploration;
 use App\Models\FetchRun;
 use App\Models\Target;
 use App\Models\Video;
+use App\Services\Discovery\Catalog;
 use App\Services\YouTube\Collector;
 use App\Services\YouTube\ReferenceParser;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
@@ -50,6 +53,9 @@ class ResearchController extends Controller
             'watched' => Target::inMode()->where('watched', true)->with(['channel', 'video'])->get(),
             'runs' => FetchRun::inMode()->latest('id')->limit(10)->get(),
             'comparisons' => Comparison::where('source', config('youtube.mode'))->latest('id')->limit(10)->get(),
+            'catalog' => app(Catalog::class)->load(),
+            'explorations' => Exploration::where('source', config('youtube.mode'))->latest('created_at')->limit(10)->get(),
+            'startToken' => (string) Str::uuid(),
         ]);
     }
 
@@ -94,10 +100,31 @@ class ResearchController extends Controller
 
     public function watch(Request $request, int $id)
     {
+        $origin = $this->origin($request);
         $data = $request->validate(['watched' => ['required', 'boolean'], 'purpose' => ['nullable', 'string', 'max:2000']]);
         Target::inMode()->findOrFail($id)->update($data);
 
-        return redirect()->route('discovery')->with('notice', 'ウォッチ設定と自分の目的を保存しました。');
+        return ($origin ? redirect()->route('explorations.show', $origin->id) : redirect()->route('discovery'))->with('notice', 'ウォッチ設定と自分の目的を保存しました。');
+    }
+
+    private function origin(Request $request): ?Exploration
+    {
+        $data = $request->validate(['exploration' => ['nullable', 'uuid']]);
+
+        return isset($data['exploration']) ? Exploration::where('source', config('youtube.mode'))->findOrFail($data['exploration']) : null;
+    }
+
+    public function watchSelected(Request $request)
+    {
+        $origin = $this->origin($request);
+        $data = $request->validate(['ids' => ['required', 'array', 'min:1', 'max:6'], 'ids.*' => ['integer', 'distinct']]);
+        $targets = Target::inMode()->where('kind', 'video')->whereIn('id', $data['ids'])->get();
+        abort_if($targets->count() !== count($data['ids']), 404);
+        foreach ($targets as $target) {
+            $target->update(['watched' => true]);
+        }
+
+        return ($origin ? redirect()->route('explorations.show', $origin->id) : redirect()->route('discovery'))->with('notice', '選んだ動画をウォッチに登録しました。停止中の観測は補完しません。');
     }
 
     public function refresh(Collector $collector)
@@ -117,11 +144,14 @@ class ResearchController extends Controller
         abort_if($targets->count() !== count($ids), 404);
         $channels = Target::inMode()->where('kind', 'channel')->whereIn('external_id', $targets->pluck('video.channel_external_id')->filter())->with('channel')->get()->keyBy('external_id');
 
-        return view('comparison', compact('targets', 'channels', 'saved'));
+        $origin = $this->origin($request);
+
+        return view('comparison', compact('targets', 'channels', 'saved', 'origin'));
     }
 
     public function saveComparison(Request $request)
     {
+        $origin = $this->origin($request);
         $data = $request->validate(['ids' => ['required', 'array', 'min:2', 'max:6'], 'ids.*' => ['integer', 'distinct'], 'comparison_type' => ['required', Rule::in(['same_channel', 'cross_channel'])], 'purpose' => ['required', 'string', 'max:2000']]);
         $targets = Target::inMode()->where('kind', 'video')->whereIn('id', $data['ids'])->get();
         abort_if($targets->count() !== count($data['ids']), 404);
@@ -132,6 +162,6 @@ class ResearchController extends Controller
             return $c;
         });
 
-        return redirect()->route('comparisons.show', $comparison->id);
+        return redirect()->route('comparisons.show', ['id' => $comparison->id, 'exploration' => $origin?->id]);
     }
 }

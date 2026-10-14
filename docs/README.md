@@ -1,6 +1,6 @@
 # ドキュメント一覧・作業別の読み方
 
-このフォルダーが初回実装の仕様入口。**作業1の取得・比較基盤を実装済み。モック検証済み、実API疎通・実データ検証と作業2は未実施。** 起動手順は[プロジェクトREADME](../README.md#起動手順windows--wsl--docker)、検証記録は[AC一覧](development/acceptance-criteria.md#作業1の検証記録2026-10-14)を参照。
+このフォルダーが初回実装の仕様入口。**作業1の取得・比較基盤を実装済み。モックと実APIの基本取得・画面操作を確認済み。複数日観測と作業2は未実施。** 起動手順は[プロジェクトREADME](../README.md#起動手順windows--wsl--docker)、検証記録は[AC一覧](development/acceptance-criteria.md#作業1の検証記録2026-10-14)を参照。
 
 ## 次の改修：キーワード不要の探索入口
 
@@ -10,7 +10,7 @@
 - [利用体験（EXP-002）](discovery/experience.md)／[収集・API・復旧（EXP-003）](discovery/collection.md)
 - [DB・観測・保存（EXP-004）](discovery/data-and-retention.md)／[候補語拡張（EXP-005）](discovery/keyword-expansion.md)
 - [実装依頼と受入条件（EXP-006）](discovery/implementation.md)
-- [初期カタログ](discovery/seed-catalog-v1.json)／[出典（EXP-007）](discovery/sources.md)／[決定記録DEC-004](decisions/0004-guided-discovery.md)
+- [初期カタログ](../config/discovery-catalog-v1.json)／[出典（EXP-007）](discovery/sources.md)／[決定記録DEC-004](decisions/0004-guided-discovery.md)
 
 ## 読む順番
 
@@ -84,3 +84,7 @@ API由来データの保存・表示・出力を変える作業では、表の�
 新しいユーザー指示で範囲が変わったら、対象の正本と受入条件を更新する。archiveの記述を根拠に現行の対象外機能を復活させない。文書間で矛盾を見つけたら、黙って機能を増やさず、矛盾と影響を報告する。
 
 [プロジェクトREADMEへ戻る](../README.md)
+
+## 検索入口の実装状況（2026-10-14）
+
+EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ接続した。受入条件別の確認、実APIの確認範囲、画面例、実行手順は[EXP検証記録](discovery/verification.md)を正本として参照する。LA-1・LA-2は既存ブランチから変更せず統合。旧作業2・LA-3は引き続き未実装。

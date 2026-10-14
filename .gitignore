@@ -27,3 +27,9 @@ Thumbs.db
 /.phpunit.cache/
 /.phpunit.result.cache
 /database/*.sqlite*
+
+# Local analysis: private requests, media, evidence and actual results
+/var/local-analysis/
+/.venv-local-analysis/
+__pycache__/
+*.py[cod]

@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Exploration;
 use Illuminate\Support\Facades\DB;
 
 class Retention
@@ -17,6 +18,18 @@ class Retention
 
         return DB::transaction(function () {
             $count = 0;
+            foreach (Exploration::where('expires_at', '<=', now())->get() as $run) {
+                foreach (['jobs', 'failed_jobs'] as $queue) {
+                    DB::table($queue)->where('payload', 'like', '%'.$run->id.'%')->delete();
+                }
+                DB::table('fetch_runs')->whereIn('id', $run->tasks()->whereNotNull('fetch_run_id')->pluck('fetch_run_id'))->delete();
+                $count += $run->tasks()->delete();
+                $run->update(['status' => 'expired', 'stop_reason' => null, 'in_flight' => false]);
+            }
+            DB::table('failed_jobs')->where('failed_at', '<=', now()->subDays(28))->delete();
+            DB::table('jobs')->where('created_at', '<=', now()->subDays(28)->timestamp)->delete();
+            DB::table('cache')->where('expiration', '<=', now()->timestamp)->delete();
+            DB::table('cache_locks')->where('expiration', '<=', now()->timestamp)->delete();
             // Runs also contain API page tokens and API-derived identifiers. Cascades remove their items.
             foreach (['observations', 'videos', 'channels', 'fetch_runs'] as $table) {
                 $count += DB::table($table)->where('expires_at', '<=', now())->delete();

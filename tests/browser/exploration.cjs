@@ -1,0 +1,90 @@
+// Execute once per viewport against a fresh, guarded test-web DB; never a normal application server.
+const { chromium } = require('playwright');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+(async () => {
+  const target = process.env.BGM_URL || 'http://127.0.0.1:8089/';
+  const mobile = process.env.BGM_VIEW === 'mobile';
+  const prefix = mobile ? 'mobile' : 'desktop';
+  const evidence = process.env.BGM_EVIDENCE || '/tmp/bgm-exploration';
+  const health = await fetch(new URL('/up', target));
+  assert.equal(health.headers.get('x-bgm-test-database'), 'pgsql:youtube_bgm_test', 'Refusing writes outside the verified test server');
+  assert.equal(health.status, 200);
+  fs.mkdirSync(evidence, { recursive: true });
+  const browser = await chromium.launch({ headless: true, executablePath: process.env.BGM_CHROME || undefined, args: ['--no-sandbox'] });
+  const page = await browser.newPage({ viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 } });
+  const errors = [];
+  page.on('pageerror', e => errors.push(e.message));
+  const screenshot = async (name) => page.screenshot({ path: `${evidence}/${prefix}-${name}.png` });
+  const noOverflow = async () => assert(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), `${prefix}: horizontal overflow`);
+  const waitDone = async () => {
+    await page.waitForFunction(() => !['queued', 'running'].includes(document.getElementById('progress')?.dataset.status), null, { timeout: 90000 });
+    assert((await page.locator('#progress').innerText()).includes('異なる動画'));
+  };
+  try {
+    await page.goto(target);
+    await page.getByText('架空データのデモ', { exact: true }).waitFor();
+    assert.equal(await page.locator('.exploration-entry input:not([type=hidden])').count(), 0, 'Start must require no query/genre/use input');
+    assert.equal(await page.locator('[name=preset]').inputValue(), 'en-US');
+    await noOverflow();
+    await screenshot('entry');
+    await page.locator('#exploration-start').click();
+    await page.getByRole('heading', { name: 'テーマ別の結果と次の一歩' }).waitFor();
+    const initialUrl = page.url();
+    await screenshot('progress');
+    // Closing the tab must not stop the accepted run.
+    const resumed = await browser.newPage({ viewport: page.viewportSize() });
+    await resumed.goto(initialUrl);
+    await resumed.close();
+    await waitDone();
+    assert.equal(await page.locator('.theme').count(), 8);
+    assert.equal(await page.locator('.lens').count(), 16);
+    const progress = await page.locator('#progress').innerText();
+    assert(progress.includes('検索 16/20'), progress);
+    assert(progress.includes('異なる動画 3本'), progress);
+    await noOverflow();
+    const lens = page.locator('.lens').first();
+    await lens.scrollIntoViewIfNeeded();
+    await screenshot('results');
+    const cards = lens.locator('.exploration-video');
+    assert.equal(await cards.count(), 3); // 2 regular + 1 live in a separate details group.
+    await cards.nth(0).locator('[name="ids[]"]').check();
+    await cards.nth(1).locator('[name="ids[]"]').check();
+    await lens.getByRole('button', { name: '2〜6本を比較', exact: true }).click();
+    await page.getByRole('heading', { name: '公開情報を並べる' }).waitFor();
+    assert.equal(await page.locator('.compare-grid > article').count(), 2);
+    await noOverflow();
+    await screenshot('compare');
+    await page.locator('input[name=purpose]').fill('デモ確認：同じ探索条件で用途の見せ方を比べる');
+    await page.getByRole('button', { name: '比較対象と目的を保存する' }).click();
+    await page.getByRole('link', { name: '元のテーマ別結果へ戻る' }).click();
+    const again = page.locator('.lens').first();
+    await again.locator('.exploration-video').nth(0).locator('[name="ids[]"]').check();
+    await again.locator('.exploration-video').nth(1).locator('[name="ids[]"]').check();
+    await again.getByRole('button', { name: '選んだ動画をウォッチ', exact: true }).click();
+    await page.getByText('選んだ動画をウォッチに登録しました。停止中の観測は補完しません。', { exact: true }).waitFor();
+    assert.equal(await page.locator('.lens').first().locator('.exploration-video select[name=watched]').first().inputValue(), '1');
+    await screenshot('watch');
+    await page.locator('.lens').first().getByRole('button', { name: '古い作品も調べる', exact: true }).click();
+    await waitDone();
+    assert((await page.locator('body').innerText()).includes('180日以上前〜5年前'));
+    assert.equal(await page.locator('.exploration-video').count(), 2);
+    assert((await page.locator('.lens').innerText()).includes('80')); // low-view older candidate retained.
+    await noOverflow();
+    await page.locator('.lens').scrollIntoViewIfNeeded();
+    await screenshot('older');
+    await page.getByRole('link', { name: '元の結果へ戻る', exact: true }).click();
+    await page.locator('.lens').first().getByText('別の切り口を探す・尺を変える', { exact: true }).click();
+    await page.locator('.lens').first().locator('.related').first().getByRole('button', { name: 'この言い回しで調べる' }).click();
+    await waitDone();
+    assert((await page.locator('.lens').innerText()).includes('instrumental music'));
+    await screenshot('related');
+    await page.getByRole('link', { name: '元の結果へ戻る', exact: true }).click();
+    await page.getByRole('link', { name: '探索入口・手動検索へ戻る' }).click();
+    await page.locator('[name=preset]').selectOption('ja-JP');
+    assert.equal(await page.locator('[name=preset]').inputValue(), 'ja-JP');
+    await noOverflow();
+    assert.deepEqual(errors, []);
+    console.log(`PASS ${prefix}: no-input start → async progress/tab close → 8 themes/16 lenses → 2-video comparison/purpose → watch → older/related searches → original results; JP preset switch; no page errors or overflow`);
+  } finally { await browser.close(); }
+})().catch(error => { console.error(error); process.exitCode = 1; });

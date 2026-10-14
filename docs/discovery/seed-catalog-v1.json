@@ -1,0 +1,77 @@
+{
+  "schema_version": "1.0.0",
+  "catalog_id": "bgm-discovery-starter",
+  "version": "1.0.0",
+  "status": "unverified_search_hypotheses",
+  "default_preset": "en-US",
+  "presets": {
+    "en-US": {"label_ja": "英語圏を想定（米国で視聴可能な動画を検索）", "region_code": "US", "relevance_language": "en"},
+    "ja-JP": {"label_ja": "日本向けを想定（日本で視聴可能な動画を検索）", "region_code": "JP", "relevance_language": "ja"}
+  },
+  "themes": [
+    {
+      "id": "broad", "axis": "broad", "label_ja": "まずBGM全体を広く見る",
+      "purpose_ja": "用途や音楽の方向を決める前に、異なる作品の入口を探す。検索だけで全市場を網羅しない。",
+      "queries": {
+        "en-US": {"primary": "background music", "meaning_ja": "背景で流す音楽を広く探す語", "related": [{"query": "instrumental music", "meaning_ja": "歌詞なしの音楽という切り口"}, {"query": "morning music", "meaning_ja": "朝の時間に聴く音楽という切り口"}]},
+        "ja-JP": {"primary": "BGM", "meaning_ja": "背景で流す音楽を広く探す語", "related": [{"query": "インストゥルメンタル BGM", "meaning_ja": "歌詞なしの音楽という切り口"}, {"query": "朝 BGM", "meaning_ja": "朝の時間に聴く音楽という切り口"}]}
+      }
+    },
+    {
+      "id": "focus", "axis": "use", "label_ja": "仕事や作業に集中する",
+      "purpose_ja": "集中する時間を訴求する作品と、場面をさらに絞った作品を比較する。集中への効能は保証しない。",
+      "queries": {
+        "en-US": {"primary": "focus music", "meaning_ja": "集中向けと表現される音楽を探す語", "related": [{"query": "coding music", "meaning_ja": "プログラミング中に聴く音楽"}, {"query": "deep work music", "meaning_ja": "深く集中する作業向けの音楽"}]},
+        "ja-JP": {"primary": "集中 BGM", "meaning_ja": "集中する時間向けの音楽を探す語", "related": [{"query": "プログラミング BGM", "meaning_ja": "コードを書く時間向け"}, {"query": "仕事用 BGM", "meaning_ja": "仕事の時間向け"}]}
+      }
+    },
+    {
+      "id": "study", "axis": "use", "label_ja": "勉強・読書をする",
+      "purpose_ja": "学習と読書で訴求や音楽の方向がどう違うかを調べる。学習効果は判定しない。",
+      "queries": {
+        "en-US": {"primary": "study music", "meaning_ja": "勉強中に聴く音楽", "related": [{"query": "reading music", "meaning_ja": "読書の時間向け"}, {"query": "piano music for studying", "meaning_ja": "勉強とピアノを組み合わせた検索"}]},
+        "ja-JP": {"primary": "勉強用 BGM", "meaning_ja": "勉強中に聴く音楽", "related": [{"query": "読書 BGM", "meaning_ja": "読書の時間向け"}, {"query": "勉強 ピアノ BGM", "meaning_ja": "勉強とピアノを組み合わせた検索"}]}
+      }
+    },
+    {
+      "id": "relax", "axis": "use", "label_ja": "休憩・気分転換",
+      "purpose_ja": "落ち着く時間を訴求する作品を探し、仕事・睡眠向けとの違いを確認する。医療効果は扱わない。",
+      "queries": {
+        "en-US": {"primary": "relaxing music", "meaning_ja": "くつろぐ時間向けの音楽", "related": [{"query": "calm guitar music", "meaning_ja": "落ち着いたギター音楽という切り口"}, {"query": "evening relaxation music", "meaning_ja": "夕方や夜の休憩向け"}]},
+        "ja-JP": {"primary": "リラックス BGM", "meaning_ja": "くつろぐ時間向けの音楽", "related": [{"query": "静かな ギター BGM", "meaning_ja": "落ち着いたギター音楽という切り口"}, {"query": "夜 リラックス BGM", "meaning_ja": "夜の休憩向け"}]}
+      }
+    },
+    {
+      "id": "sleep", "axis": "use", "label_ja": "就寝前・睡眠向けの表現",
+      "purpose_ja": "睡眠を訴求する作品の長さや見せ方を確認する。睡眠改善を医学的に認定しない。",
+      "queries": {
+        "en-US": {"primary": "sleep music", "meaning_ja": "就寝前や睡眠向けとされる音楽", "related": [{"query": "soft piano sleep music", "meaning_ja": "ピアノと睡眠を組み合わせた検索"}, {"query": "rain and sleep music", "meaning_ja": "雨と音楽を組み合わせた検索"}]},
+        "ja-JP": {"primary": "睡眠用 BGM", "meaning_ja": "就寝前や睡眠向けとされる音楽", "related": [{"query": "睡眠 ピアノ BGM", "meaning_ja": "ピアノと睡眠を組み合わせた検索"}, {"query": "雨 睡眠 BGM", "meaning_ja": "雨と音楽を組み合わせた検索"}]}
+      }
+    },
+    {
+      "id": "cafe", "axis": "scene", "label_ja": "カフェ・部屋の雰囲気",
+      "purpose_ja": "場所の雰囲気を伝える表現と、ジャズなどの方向の違いを調べる。返った曲のジャンルを自動判定しない。",
+      "queries": {
+        "en-US": {"primary": "cafe music", "meaning_ja": "カフェの雰囲気を訴求する音楽", "related": [{"query": "coffee shop jazz", "meaning_ja": "カフェとジャズを組み合わせた検索"}, {"query": "bossa nova cafe music", "meaning_ja": "ボサノバとカフェを組み合わせた検索"}]},
+        "ja-JP": {"primary": "カフェ BGM", "meaning_ja": "カフェの雰囲気を訴求する音楽", "related": [{"query": "カフェ ジャズ BGM", "meaning_ja": "カフェとジャズを組み合わせた検索"}, {"query": "カフェ ボサノバ BGM", "meaning_ja": "ボサノバとカフェを組み合わせた検索"}]}
+      }
+    },
+    {
+      "id": "ambient", "axis": "style", "label_ja": "アンビエントという方向を知る",
+      "purpose_ja": "アンビエントという検索語から、用途や空間表現の幅を調べる。音源を聴いたことにはしない。",
+      "queries": {
+        "en-US": {"primary": "ambient music", "meaning_ja": "アンビエントと呼ばれる音楽を探す語", "related": [{"query": "space ambient music", "meaning_ja": "宇宙のイメージを組み合わせた検索"}, {"query": "ambient music for reading", "meaning_ja": "読書という用途を加えた検索"}]},
+        "ja-JP": {"primary": "アンビエント BGM", "meaning_ja": "アンビエントと呼ばれる音楽を探す語", "related": [{"query": "宇宙 アンビエント BGM", "meaning_ja": "宇宙のイメージを組み合わせた検索"}, {"query": "読書 アンビエント BGM", "meaning_ja": "読書という用途を加えた検索"}]}
+      }
+    },
+    {
+      "id": "lofi", "axis": "style", "label_ja": "Lo-fiという方向を知る",
+      "purpose_ja": "Lo-fiという検索語から用途や見せ方の違いを調べる。流行中という既定判定はしない。",
+      "queries": {
+        "en-US": {"primary": "lofi music", "meaning_ja": "Lo-fiと表現される音楽を探す語", "related": [{"query": "lofi jazz", "meaning_ja": "Lo-fiとジャズを組み合わせた検索"}, {"query": "rainy night lofi", "meaning_ja": "雨の夜のイメージを組み合わせた検索"}]},
+        "ja-JP": {"primary": "ローファイ BGM", "meaning_ja": "Lo-fiと表現される音楽を探す語", "related": [{"query": "ローファイ ジャズ", "meaning_ja": "Lo-fiとジャズを組み合わせた検索"}, {"query": "雨 夜 ローファイ BGM", "meaning_ja": "雨の夜のイメージを組み合わせた検索"}]}
+      }
+    }
+  ]
+}

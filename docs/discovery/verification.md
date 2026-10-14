@@ -21,7 +21,7 @@ LA-1/LA-2はPR #2の統合先が`docs/local-analysis-workflow`で、mainには�
 
 ## 実行した検証
 
-- `docker compose --profile test run --rm test composer test`：88テスト・509アサーション成功。既存56件を含む。
+- `docker compose --profile test run --rm test composer test`：91テスト・524アサーション成功。既存56件を含む。
 - 実接続：PDO pgsql / `youtube_bgm_test` / 制限ロール`bgm_test` / PostgreSQL 18.6。初期化前のDB識別検査を維持。通常DBへのテスト投入は行っていない。
 - `docker compose --profile test run --rm test php tests/Support/worker-crash.php`：成功。検索ページ保存後の詳細呼出で子ワーカーを実SIGKILLし、DBキューの予約ジョブを同じtask/FetchRunで再配信。検索を再実行せず詳細だけを解決し、観測5件・消費不明の表示を確認。テスト時計だけを181秒進め、運用のtimeout/retry/lease値は短縮していない。
 - 同スクリプトで二つの独立PHPプロセスから同じ探索のread枠を同時予約。`reset()`後も上限1を超えず成功。
@@ -56,6 +56,12 @@ LA-1/LA-2はPR #2の統合先が`docs/local-analysis-workflow`で、mainには�
 
 ## 起動・運用
 
-新規clone・既存環境の起動、ワーカーの単一起動、候補JSONのdry-run/apply、ブラウザーテストの再実行は[プロジェクトREADME](../../README.md)を正本とする。既存環境の追加マイグレーションは成功し、既存テーブル/データの初期化は行っていない。新規cloneは`/tmp/bgm-exp-clean-verified`の別チェックアウト・別Composeプロジェクト・別DB volumeで確認した。composer install、APP_KEY生成、全マイグレーション、Web/worker同時起動に成功。HTTP 200、未入力入口とデモ表示、worker稼働を確認して停止した。通常環境は追加マイグレーションのみ実行済み。GitHub CIの結果は確認後に追記する。
+新規clone・既存環境の起動、ワーカーの単一起動、候補JSONのdry-run/apply、ブラウザーテストの再実行は[プロジェクトREADME](../../README.md)を正本とする。既存環境の追加マイグレーションは成功し、既存テーブル/データの初期化は行っていない。新規cloneは`/tmp/bgm-exp-clean-verified`の別チェックアウト・別Composeプロジェクト・別DB volumeで確認した。composer install、APP_KEY生成、全マイグレーション、Web/worker同時起動に成功。HTTP 200、未入力入口とデモ表示、worker稼働を確認して停止した。通常環境は追加マイグレーションのみ実行済み。実装PRは[PR #5](https://github.com/d-engineer92/youtube-bgm/pull/5)。未マージ。
 
 APIキー・実結果・素材・ログ・個人の候補JSONはGitへ追加していない。画面例は架空データだけ。28日処理は取得した所属自体にも適用し、現在値更新で過去所属を延命しない。
+
+## GitHub CIで確認した結果
+
+`500b0f8`に対する[PostgreSQLアプリCI](https://github.com/d-engineer92/youtube-bgm/actions/runs/38517257810)と[LA人工素材CI](https://github.com/d-engineer92/youtube-bgm/actions/runs/38517257849)は両方成功。CIログでもpgsql / youtube_bgm_test / bgm_test / PostgreSQL 18.6、88テスト・509アサーション、SIGKILL再配信・同時予算予約、PCとスマートフォンの全導線成功、LA27件を確認した。
+
+その後の最終確認で、未保存メモを自動更新から保護し、不正なitems型・10件上限違反・途中の不正IDで検索所属が部分保存されない3ケースを追加。ローカル最終結果は上記91件・524アサーション。最終コミットに対する同じ両CIとデモ画面artifactは[PRのチェック](https://github.com/d-engineer92/youtube-bgm/pull/5/checks)で確認できる。

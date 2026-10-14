@@ -487,4 +487,27 @@ class ExplorationTest extends TestCase
             unlink($path);
         }
     }
+
+    public static function malformedPages(): array
+    {
+        return [
+            [['items' => 'wrong type']],
+            [['items' => array_fill(0, 11, ['id' => ['videoId' => 'demoVideo01']])]],
+            [['items' => [['id' => ['videoId' => 'demoVideo01']], ['id' => ['videoId' => 'invalid']]]]],
+        ];
+    }
+
+    #[DataProvider('malformedPages')]
+    public function test_invalid_page_never_commits_partial_ids_ranks_or_cursor(array $page): void
+    {
+        $run = $this->start();
+        $this->gateway->intercept = fn () => $page;
+        app(Runner::class)->step($run->id);
+        $task = $run->tasks()->first();
+        $this->assertSame('invalid_response', $task->error_code);
+        $this->assertSame(0, Target::count());
+        $this->assertSame(0, $task->fetchRun->pages);
+        $this->assertNull($task->fetchRun->next_page_token);
+        $this->assertSame(1, $run->fresh()->search_calls);
+    }
 }

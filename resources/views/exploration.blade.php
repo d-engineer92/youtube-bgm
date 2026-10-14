@@ -88,6 +88,8 @@
 @if(in_array($run->status,['queued','running']))
 <script>
 let lastDone={{ $run->tasks->whereIn('status',['complete','empty'])->count() }};
+let edited=false;
+document.addEventListener('input',event=>{ if(event.target.matches('input[name=purpose]')) edited=true; });
 const labels={queued:'待機中',running:'収集中',complete:'計画完了',partial:'一部失敗',paused:'停止中',failed:'失敗',expired:'期限切れ'};
 setInterval(async()=>{
     try {
@@ -102,7 +104,7 @@ setInterval(async()=>{
         document.getElementById('progress-count').textContent=`完了 ${data.done} / ${data.tasks.length}条件`;
         document.getElementById('progress-budget').textContent=`送信試行：検索 ${data.search_calls} / read ${data.read_calls}`;
         // Show committed results when ready, without interrupting selection/editing.
-        if((data.done>lastDone || !['queued','running'].includes(data.status)) && !document.querySelector('input[type=checkbox]:checked') && !document.querySelector('input[name=purpose]:focus')) location.reload();
+        if((data.done>lastDone || !['queued','running'].includes(data.status)) && !edited && !document.querySelector('input[type=checkbox]:checked') && !document.querySelector('input[name=purpose]:focus')) location.reload();
     } catch(_) { document.getElementById('worker-hint').textContent='進捗を取得できません。接続を確認して画面を更新してください。'; }
 },2500);
 </script>

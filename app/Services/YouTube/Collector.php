@@ -193,10 +193,10 @@ class Collector
                 $params['pageToken'] = $run->next_page_token;
             }
             $page = $this->api->call($method, $params);
-            if (isset($run->conditions['page_limit']) && (count($page['items'] ?? []) > 10 || (isset($page['nextPageToken']) && (! is_string($page['nextPageToken']) || strlen($page['nextPageToken']) > 4096)))) {
+            if (! isset($page['items']) || ! is_array($page['items']) || (! empty($page['nextPageToken']) && $page['nextPageToken'] === $run->next_page_token)) {
                 throw new ApiFailure('invalid_response');
             }
-            if (! isset($page['items']) || ! is_array($page['items']) || (! empty($page['nextPageToken']) && $page['nextPageToken'] === $run->next_page_token)) {
+            if (isset($run->conditions['page_limit']) && (count($page['items']) > 10 || (isset($page['nextPageToken']) && (! is_string($page['nextPageToken']) || strlen($page['nextPageToken']) > 4096)))) {
                 throw new ApiFailure('invalid_response');
             }
             $listed += count($page['items']);

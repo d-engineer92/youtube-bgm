@@ -1,6 +1,6 @@
 # ドキュメント一覧・作業別の読み方
 
-このフォルダーが初回実装の仕様入口。**現状は文書のみで、実装・疎通・実データ検証は未実施。**
+このフォルダーが初回実装の仕様入口。**作業1の取得・比較基盤を実装済み。モック検証済み、実API疎通・実データ検証と作業2は未実施。** 起動手順は[プロジェクトREADME](../README.md#起動手順windows--wsl--docker)、検証記録は[AC一覧](development/acceptance-criteria.md#作業1の検証記録2026-10-14)を参照。
 
 ## 読む順番
 
@@ -11,6 +11,7 @@
 | 作業 | 必要な文書 | 主な受入条件 |
 |---|---|---|
 | 開発環境・DB | [構成とデータ](architecture/system-and-data.md)、[保存期限](compliance/data-retention.md) | AC-09・10・12 |
+| テスト・CI・接続設定 | [PostgreSQL専用方針](architecture/database-policy.md)、[AC一覧](development/acceptance-criteria.md) | AC-10・12・13 |
 | API取得・日次更新 | [API](integrations/youtube-data-api.md)、[保存期限](compliance/data-retention.md)、[数値](research/metrics.md)、[画面A](features/discovery.md) | AC-01〜04・09・10 |
 | 検索・ウォッチ画面 | [画面A](features/discovery.md)、[API](integrations/youtube-data-api.md)、[数値](research/metrics.md) | AC-01〜04 |
 | 比較・初心者ガイド | [画面B](features/comparison.md)、[分析ガイド](research/analysis-guide.md)、[数値](research/metrics.md) | AC-03・05〜07 |

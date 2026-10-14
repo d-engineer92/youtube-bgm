@@ -1,7 +1,7 @@
 # 最小構成とデータ設計
 
 > 文書ID：ARC-001  
-> 状態：初回実装用の提案仕様（未実装）  
+> 状態：作業1の構成を採用・実装済み（実データ未確認）\
 > 読む場面：環境構築・Laravel構成・PostgreSQLの設計をするとき  
 > 整理日：2026-10-14  
 > 元資料：[初回実装仕様 v2](../archive/codex_research_first_mvp_v2.md) L17–L22、L222–L237。見出し・参照リンクを整理し、要件の内容は引き継いでいる。
@@ -10,7 +10,7 @@
 
 ユーザー資料の指定：Windows / WSL / Docker、WebとDBを分離、PHP / Laravel、公式Googleクライアントライブラリ、YouTube Data API、APIキーのみ、OAuthなし。[U2](../references/sources.md#u2)
 
-DBはPostgreSQLを採用する提案。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
+DBは開発・通常運用・DB依存テスト・CIを含めPostgreSQLのみ。[ARC-002](database-policy.md)に従い、通常データを同じアプリDBへ集約し自動テストだけを隔離する。ローカル・単一利用者向けとし、新規VPS契約やSaaS化は不要。UIはLaravel Blade等の単純な構成でよく、既存の指定がなければ別SPAを追加しない。ライブラリの対応バージョンは実装時に確認する。
 
 ## データ設計は必要最小限にする
 
@@ -27,6 +27,14 @@ DBはPostgreSQLを採用する提案。ローカル・単一利用者向けと�
 回答欄は初期はJSONBでもよい。ただし外部ID・時刻・カウンター等、検索や整合性が必要な情報まで無秩序なJSONに押し込まない。動画ファイル・音源保存領域はまだ不要。
 
 APIキャッシュを削除したとき、自分の企画が意図せずすべて削除されないよう参照関係を設計する。一方、削除対象のAPIデータだけ別テーブルに残ることも防ぐ。
+
+## 作業1で採用した構成
+
+PHP 8.5.10、Laravel 13、PostgreSQL 18、Blade、公式`google/apiclient`を採用。正確な依存バージョンは`composer.lock`、再現可能な起動手順は[README](../../README.md)を参照。別SPA・Nodeビルド・OAuthは不要。
+
+物理スキーマは[マイグレーション](../../database/migrations/2026_10_14_000001_create_research_tables.php)が正本。`targets`は対象参照・自分の目的・ウォッチ設定、`channels`/`videos`は現在の公開情報、`observations`は取得時刻を持つ統計、`fetch_runs`/`run_items`は条件・ページ・結果、`api_days`は呼出上限管理、`comparisons`/中間表は自分の比較目的と参照だけを持つ。
+
+実取得とデモは`source`でIDの一意性と画面・更新対象を分離する。APIキャッシュの削除は比較目的を削除しない。質問回答・制作指示書の領域は作業2で追加する。
 
 ## 関連文書
 

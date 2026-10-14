@@ -86,4 +86,14 @@
 - [O2] OpenAI「Best practices」。今回確認日：2026-10-14。共通指示を簡潔にし、作業別の文書を参照する構成の参考。  
   https://learn.chatgpt.com/guides/best-practices
 
+## 作業1実装時に再確認した公式資料（2026-10-14）
+
+これは文書分割時の記録とは別に、今回の実装時にページ内容を読み直した記録。実API疎通やプロジェクトの実割当、商用利用の監査を確認した意味ではない。
+
+- [Laravel 13 releases](https://laravel.com/framework/docs/13.x/releases)：PHP対応範囲を確認。実装はPHP 8.5.10で動作確認。
+- [公式Google PHPクライアント](https://github.com/googleapis/google-api-php-client)：APIキーとYouTubeサービスに使用。取得したバージョンはlockファイルに固定し、公式クライアントをモックHTTPで確認。
+- [Developer Policies](https://developers.google.com/youtube/terms/developer-policies)、[Policies guide](https://developers.google.com/youtube/terms/developer-policies-guide)：非認可統計の30日保存制限と単純計算の説明を確認。28日は本プロジェクトの運用判断。個別利用の包括的な適合判定は行っていない。
+- [Search list](https://developers.google.com/youtube/v3/docs/search/list)、[Channels list](https://developers.google.com/youtube/v3/docs/channels/list)、[PlaylistItems list](https://developers.google.com/youtube/v3/docs/playlistItems/list)、[Videos list](https://developers.google.com/youtube/v3/docs/videos/list)：取得パラメーター・ページ送りを確認。概数totalResultsで完全性を判断しない。forHandleは公式対応を確認したが今回は実装していない。
+- [Quota calculator](https://developers.google.com/youtube/v3/determine_quota_cost)：確認時の資料では検索用の独立した日次バケットを説明。固定の昔のクォータ計算を採用せず、アプリの呼出回数上限を設定可能にした。実プロジェクトの割当・他のクライアントの消費は未確認。
+
 [文書一覧へ戻る](../README.md)

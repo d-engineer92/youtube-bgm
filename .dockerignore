@@ -1,0 +1,7 @@
+.git
+.env
+.env.*
+vendor
+storage
+docs
+node_modules

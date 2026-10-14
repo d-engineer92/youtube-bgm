@@ -1,0 +1,85 @@
+name: youtube-bgm
+x-postgres-image: &postgres-image postgres:18
+x-app: &app
+  build: .
+  image: youtube-bgm-app:local
+  user: "${LOCAL_UID:-1000}:${LOCAL_GID:-1000}"
+  working_dir: /app
+  volumes:
+    - .:/app
+  environment:
+    COMPOSER_HOME: /tmp/composer
+  depends_on:
+    db:
+      condition: service_healthy
+services:
+  web:
+    <<: *app
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8088}:8088"
+  scheduler:
+    <<: *app
+    command: ["php", "artisan", "schedule:work"]
+    profiles: [scheduler]
+  db:
+    image: *postgres-image
+    environment:
+      POSTGRES_DB: youtube_bgm
+      POSTGRES_USER: bgm
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-local-bgm-only}"
+    volumes:
+      - bgm-db:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bgm -d youtube_bgm"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  db-test:
+    image: *postgres-image
+    profiles: [test]
+    environment:
+      POSTGRES_DB: youtube_bgm_test
+      POSTGRES_USER: bgm_test_admin
+      POSTGRES_PASSWORD: admin-test-only
+    volumes:
+      - ./docker/postgres-test:/docker-entrypoint-initdb.d:ro
+    tmpfs:
+      - /var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bgm_test_admin -d youtube_bgm_test"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+  test:
+    <<: *app
+    profiles: [test]
+    environment:
+      APP_ENV: testing
+      DB_CONNECTION: pgsql
+      DB_HOST: db-test
+      DB_DATABASE: youtube_bgm_test
+      DB_USERNAME: bgm_test
+      DB_PASSWORD: test-only
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: ["php", "artisan", "test"]
+  test-web:
+    <<: *app
+    profiles: [test]
+    ports:
+      - "127.0.0.1:8089:8088"
+    environment:
+      APP_ENV: testing
+      YOUTUBE_MODE: demo
+      DB_CONNECTION: pgsql
+      DB_HOST: db-test
+      DB_DATABASE: youtube_bgm_test
+      DB_USERNAME: bgm_test
+      DB_PASSWORD: test-only
+    depends_on:
+      db-test:
+        condition: service_healthy
+    command: ["php", "artisan", "bgm:browser-test-server"]
+volumes:
+  bgm-db:

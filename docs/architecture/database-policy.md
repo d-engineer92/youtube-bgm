@@ -1,9 +1,9 @@
 # PostgreSQLのみを使用するDB方針
 
-> 文書ID：ARC-002  
-> 状態：ユーザー指定の採用方針。実装への反映・再テストは未確認。  
-> 読む場面：DB接続、環境構築、DB依存テスト、CI、バッチの保存先を変更するとき  
-> 整理日：2026-10-14  
+> 文書ID：ARC-002\
+> 状態：検索・比較基盤へ反映し、ローカル・GitHub CIでPostgreSQL再テスト済み。\
+> 読む場面：DB接続、環境構築、DB依存テスト、CI、バッチの保存先を変更するとき\
+> 整理日：2026-10-14\
 > 決定根拠：利用者の「DBは分けたくなく、PostgreSQLのみとしたい」という追加指示。
 
 ## 採用する構成
@@ -65,6 +65,8 @@ Laravelのテスト環境設定とDBリセットについて、2026-10-14に次�
 - [Testing / Environment](https://laravel.com/docs/12.x/testing#environment)
 - [Database Testing / Resetting the Database After Each Test](https://laravel.com/docs/12.x/database-testing#resetting-the-database-after-each-test)
 
-今回GitHubで確認できたのは文書のmainと追加仕様PRのみ。利用者が示した「SQLite・PostgreSQLで各47テスト／186アサーション成功」はCodexの報告文であり、実装コードや実行ログをこちらが検証した結果ではない。
+方針決定時点でGitHubにあったのは文書のmainと追加仕様PRのみ。その時点の「SQLite・PostgreSQLで各47テスト／186アサーション成功」は未検証の報告だった。実装後のローカル・GitHub CIの接続先と件数は、以下のAC記録で区別する。
 
 [構成とデータへ戻る](system-and-data.md) / [文書一覧へ戻る](../README.md)
+
+実装での接続先・件数・拒否確認は[AC記録](../development/acceptance-criteria.md#arc-002反映後の再検証2026-10-14)を参照。

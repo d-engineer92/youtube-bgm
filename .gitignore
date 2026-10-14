@@ -1,0 +1,24 @@
+# Secrets / local-only materials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+credentials*.json
+client_secret*.json
+token*.json
+
+# Raw private reference articles and local evidence
+/docs/private/
+/private/
+/AI×BGM.txt
+/YouTube Data API.txt
+/YouTube×BGM.txt
+
+# Future application runtime and dependency output
+/vendor/
+/node_modules/
+/storage/
+*.log
+.DS_Store
+Thumbs.db

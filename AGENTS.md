@@ -29,3 +29,7 @@ GitHubのリポジトリ作成・公開範囲変更・push・課金・デプロ�
 ## 検索入口の実装状況（2026-10-14）
 
 EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ接続した。受入条件別の確認、実APIの確認範囲、画面例、実行手順は[EXP検証記録](docs/discovery/verification.md)を正本として参照する。LA-1・LA-2は既存ブランチから変更せず統合。旧作業2・LA-3は引き続き未実装。
+
+## 全動画追跡・全体監査（2026-10-16）
+
+[TRK入口](docs/tracking/README.md)と[監査入口](docs/audits/2026-10-16/README.md)を参照。監査差分はTRK/EXP/FTR/RES/POL正本へ採用済み、改修実装・受入は未実施。新着・0再生を含む全取得動画を継続観測する。P0と専用PostgreSQL受入前に通常DBを消去せず、既切替なら再消去しない。範囲/130本UI計画はTRK-005、切替はTRK-004。PRを自動マージしない。

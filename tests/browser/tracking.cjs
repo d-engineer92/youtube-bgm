@@ -32,8 +32,18 @@ let browser;
   await page.reload();await ready();assert.equal(await page.locator('[name=hypothesis]').inputValue(),'用途が伝わったかもしれない');
   await page.locator('[name=next_check]').fill('タイトルだけ変える');await page.getByRole('button',{name:'分析を途中保存',exact:true}).click();await ready();
   await page.getByRole('link',{name:'仮説から試作下書きへ →',exact:true}).click();await ready();
+  // R1: a second tab changes the latest projection after this form displayed v1.
+  const displayedId=await page.locator('[name=analysis_id]').inputValue();
+  const other=await context.newPage();
+  const comparisonUrl=await page.getByRole('link',{name:/比較 #/}).getAttribute('href');
+  await other.goto(comparisonUrl);await other.locator('#selection-tray[data-ready=true]').waitFor();
+  await other.locator('[name=hypothesis]').fill('別タブで更新した仮説v2');
+  await other.getByRole('button',{name:'分析を途中保存',exact:true}).click();await other.locator('#selection-tray[data-ready=true]').waitFor();
+  assert.equal(await page.locator('[name=analysis_id]').inputValue(),displayedId);
+  await other.close();
   await page.locator('[name="content[one_change]"]').fill('タイトルだけ変える');await page.locator('[name="content[budget]"]').fill('500円以内');await page.locator('[name="content[hours]"]').fill('2時間以内');await page.locator('[name="content[permission]"]').fill('未確認');await page.locator('[name="content[validation]"]').fill('Studioで手動確認');await page.getByRole('button',{name:'試作下書きを保存',exact:true}).click();await ready();
   await page.reload();await ready();assert.equal(await page.locator('[name="content[one_change]"]').inputValue(),'タイトルだけ変える');
+  assert((await page.textContent('body')).includes('分析版 1'));assert((await page.textContent('body')).includes('用途が伝わったかもしれない'));assert(!(await page.textContent('body')).includes('別タブで更新した仮説v2'));
   await page.locator('[name="reflection[source]"]').fill('Studio手入力');await page.locator('[name="reflection[period]"]').fill('公開後7日');await page.getByRole('button',{name:'試作下書きを保存',exact:true}).click();await ready();
   assert.equal(await page.locator('[name="reflection[source]"]').inputValue(),'Studio手入力');
   assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));

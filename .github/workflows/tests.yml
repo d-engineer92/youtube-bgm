@@ -31,6 +31,8 @@ jobs:
           docker compose --profile test up -d --wait test-web
           docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture
           docker compose --profile test run --rm browser node tests/browser/tracking.cjs
+          docker compose --profile test exec -T test-web php tests/Support/brief-expiry-fixture.php > /tmp/bgm-exploration/brief-expiry.json
+          docker compose --profile test run --rm browser node tests/browser/brief-expiry.cjs
           docker compose --profile test stop test-web
           docker compose --profile test up -d --wait test-web
           docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture --count=1000 --days=28

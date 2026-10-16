@@ -17,7 +17,35 @@
  if(returnLink){returnLink.href=sessionStorage.getItem(key+'-return')||'{{ route('tracking') }}';}
  if(location.href===sessionStorage.getItem(key+'-return')){requestAnimationFrame(()=>scrollTo(0,Number(sessionStorage.getItem(key+'-scroll')||0)));}
  // Per-page form drafts survive navigation/polling. API bodies never enter browser storage.
- document.querySelectorAll('form[data-draft]').forEach(form=>{const k=key+'-draft-'+form.dataset.draft;let draft={};try{draft=JSON.parse(sessionStorage.getItem(k)||'{}');}catch{};form.querySelectorAll('textarea,input:not([type=hidden])').forEach(e=>{if(draft.expires_at && Date.now()>draft.expires_at){sessionStorage.removeItem(k);draft={};}if(draft[e.name]!==undefined)e.value=draft[e.name];e.addEventListener('input',()=>{draft.expires_at=Math.min(draft.expires_at||Date.now()+28*86400000,Date.parse(form.dataset.expires||'')||Date.now()+28*86400000);draft[e.name]=e.value;sessionStorage.setItem(k,JSON.stringify(draft));const status=form.querySelector('[data-save-state]');if(status)status.textContent='未保存（このタブに下書き）';});});form.addEventListener('submit',()=>{const status=form.querySelector('[data-save-state]');if(status)status.textContent='保存中';});});
+ document.querySelectorAll('form[data-draft]').forEach(form=>{
+  const k=key+'-draft-'+form.dataset.draft, evidenceKey=k+'-evidence';
+  const read=k=>{try{return JSON.parse(sessionStorage.getItem(k)||'{}');}catch{return {};}};
+  let draft=read(k), evidence=read(evidenceKey);
+  const evidenceExpiry=Date.parse(form.dataset.evidenceExpires||'');
+  const dependent=e=>e.hasAttribute('data-evidence-field');
+  const expired=()=>Number.isFinite(evidenceExpiry)&&Date.now()>=evidenceExpiry;
+  // Migrate old mixed drafts without restoring reference text from their 28-day TTL.
+  const fields=[...form.querySelectorAll('textarea,input:not([type=hidden])')];
+  fields.filter(dependent).forEach(e=>{delete draft[e.name];});
+  sessionStorage.setItem(k,JSON.stringify(draft));
+  const purge=()=>{if(!expired())return;sessionStorage.removeItem(evidenceKey);evidence={};fields.filter(dependent).forEach(e=>{e.value='';e.readOnly=true;});};
+  purge();
+  fields.forEach(e=>{
+   let saved=dependent(e)?evidence:draft;
+   if(saved.expires_at&&Date.now()>=saved.expires_at){sessionStorage.removeItem(dependent(e)?evidenceKey:k);saved={};if(dependent(e))evidence={};else draft={};}
+   if(!expired()||!dependent(e)){if(saved[e.name]!==undefined)e.value=saved[e.name];}
+   e.addEventListener('input',()=>{
+    purge();if(dependent(e)&&expired())return;
+    const d=dependent(e)?evidence:draft;
+    d.expires_at=dependent(e)?evidenceExpiry:Math.min(d.expires_at||Date.now()+28*86400000,Date.parse(form.dataset.expires||'')||Date.now()+28*86400000);
+    d[e.name]=e.value;sessionStorage.setItem(dependent(e)?evidenceKey:k,JSON.stringify(d));
+    const status=form.querySelector('[data-save-state]');if(status)status.textContent='未保存（このタブに下書き）';
+   });
+  });
+  window.addEventListener('pageshow',purge);window.addEventListener('focus',purge);document.addEventListener('visibilitychange',purge);
+  const schedulePurge=()=>{purge();if(Number.isFinite(evidenceExpiry)&&!expired())setTimeout(schedulePurge,Math.min(evidenceExpiry-Date.now()+1,2147483647));};schedulePurge();
+  form.addEventListener('submit',()=>{purge();const status=form.querySelector('[data-save-state]');if(status)status.textContent='保存中';});
+ });
  refresh();inputs.forEach(e=>{e.disabled=false;});document.querySelector('#tray-compare').disabled=false;document.querySelector('#tray-clear').disabled=false;document.querySelector('#selection-tray').dataset.ready='true';document.querySelector('#selection-tray').setAttribute('aria-busy','false');
 })();
 </script>

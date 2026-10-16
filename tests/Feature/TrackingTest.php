@@ -179,7 +179,7 @@ class TrackingTest extends TestCase
         $c = Comparison::first();
         $this->assertSame('cross_channel', $c->comparison_type);
         $this->post('/comparisons/'.$c->id.'/analysis', ['revision' => 0, 'state' => 'draft', 'facts' => '固定観測を見た', 'hypothesis' => '用途が伝わったかもしれない', 'counterexample' => '別の説明', 'unknown' => '楽器不明・画像未観察・コメント未読', 'next_check' => 'タイトルだけ変える'])->assertRedirect();
-        $this->post('/briefs', ['comparison' => $c->id, 'revision' => 0, 'content' => ['one_change' => 'タイトル', 'budget' => '500円', 'hours' => '2時間', 'permission' => '未確認', 'validation' => 'Studioを手動確認'], 'reflection' => ['source' => 'Studio手入力', 'period' => '公開後7日', 'unit' => 'CTR %', 'result' => '未確認']])->assertRedirect();
+        $this->post('/briefs', ['comparison' => $c->id, 'analysis_id' => AnalysisRevision::where('comparison_id', $c->id)->value('id'), 'revision' => 0, 'content' => ['one_change' => 'タイトル', 'budget' => '500円', 'hours' => '2時間', 'permission' => '未確認', 'validation' => 'Studioを手動確認'], 'reflection' => ['source' => 'Studio手入力', 'period' => '公開後7日', 'unit' => 'CTR %', 'result' => '未確認']])->assertRedirect();
         $brief = ProductionBrief::first();
         $this->assertSame(1, $brief->analysis_revision);
         $this->assertSame('タイトル', $brief->content['one_change']);
@@ -388,5 +388,81 @@ class TrackingTest extends TestCase
         $this->assertTrue($interval['eligible']);
         $this->assertNotNull($interval['last_fulfilled_scheduled_for']);
         $this->assertNull($interval['unfulfilled_scheduled_for']);
+    }
+
+    public function test_r1_new_brief_pins_displayed_analysis_despite_other_tab_and_rejects_foreign_revision(): void
+    {
+        app(SyntheticFixture::class)->seed(2);
+        $ids = Target::pluck('id')->all();
+        $c = app(Review::class)->save($ids, '版固定');
+        $this->post('/comparisons/'.$c->id.'/analysis', ['revision' => 0, 'state' => 'draft', 'hypothesis' => '表示した仮説'])->assertRedirect();
+        $v1 = AnalysisRevision::where('comparison_id', $c->id)->first();
+        $this->get('/briefs/new?comparison='.$c->id)->assertOk()->assertSee($v1->id);
+        $this->post('/comparisons/'.$c->id.'/analysis', ['revision' => 1, 'state' => 'draft', 'hypothesis' => '別タブの仮説'])->assertRedirect();
+        $payload = ['comparison' => $c->id, 'analysis_id' => $v1->id, 'revision' => 0, 'content' => ['one_change' => '表示した仮説から企画']];
+        $this->post('/briefs', $payload)->assertRedirect();
+        $brief = ProductionBrief::firstOrFail();
+        $this->assertSame(1, $brief->analysis_revision);
+        $this->get('/briefs/'.$brief->id)->assertSee('表示した仮説')->assertDontSee('別タブの仮説');
+        $other = app(Review::class)->save($ids, '別比較');
+        $payload['comparison'] = $other->id;
+        $this->postJson('/briefs', $payload)->assertUnprocessable();
+        $payload['comparison'] = $c->id;
+        unset($payload['analysis_id']);
+        $this->postJson('/briefs', $payload)->assertUnprocessable();
+        $this->assertSame(1, ProductionBrief::count());
+    }
+
+    public function test_r2_expired_reference_direct_post_cannot_restore_but_own_plan_and_reflection_survive(): void
+    {
+        app(SyntheticFixture::class)->seed(2);
+        $c = app(Review::class)->save(Target::pluck('id')->all(), '期限');
+        $this->post('/comparisons/'.$c->id.'/analysis', ['revision' => 0, 'state' => 'draft', 'hypothesis' => '期限付き'])->assertRedirect();
+        $analysis = AnalysisRevision::where('comparison_id', $c->id)->first();
+        $this->post('/briefs', ['comparison' => $c->id, 'analysis_id' => $analysis->id, 'revision' => 0, 'content' => ['reference' => '旧参考', 'avoid' => '旧反例', 'one_change' => '本人企画'], 'reflection' => ['result' => '本人結果']])->assertRedirect();
+        $brief = ProductionBrief::firstOrFail();
+        $c->update(['evidence_expires_at' => now()->subSecond()]);
+        app(Retention::class)->prune();
+        $this->get('/briefs/'.$brief->id)->assertOk()->assertDontSee('旧参考')->assertDontSee('旧反例')->assertSee('本人企画')->assertSee('本人結果');
+        $this->post('/briefs', ['comparison' => $c->id, 'brief_id' => $brief->id, 'revision' => $brief->revision, 'content' => ['reference' => '復活参考', 'avoid' => '復活反例', 'one_change' => '更新本人企画'], 'reflection' => ['result' => '更新本人結果']])->assertRedirect();
+        $this->assertSame(['one_change' => '更新本人企画'], $brief->fresh()->content);
+        $this->assertSame('更新本人結果', $brief->fresh()->reflection['result']);
+        $this->post('/briefs', ['comparison' => $c->id, 'analysis_id' => $analysis->id, 'revision' => 0, 'content' => ['reference' => '復活']])->assertGone();
+    }
+
+    public function test_r3_steady_28_day_rolling_history_freezes_only_required_interval_and_versions(): void
+    {
+        app(SyntheticFixture::class)->seed(2, 28);
+        foreach (Target::with('observations')->get() as $target) {
+            foreach ($target->observations->sortBy('fetched_at')->values() as $n => $observation) {
+                $at = $n === 0 ? now()->subDays(28)->addMinutes(10) : $observation->fetched_at;
+                $version = MetadataVersion::findOrFail($observation->metadata_version_id)->replicate();
+                $version->fetched_at = $at;
+                $version->expires_at = $at->copy()->addDays(28);
+                $version->save();
+                $observation->update(['metadata_version_id' => $version->id, 'fetched_at' => $at, 'expires_at' => $at->copy()->addDays(28)]);
+            }
+        }
+        $ids = Target::pluck('id')->all();
+        $day = app(Review::class)->save($ids, '24h', 24);
+        $week = app(Review::class)->save($ids, '7d', 168);
+        $this->assertTrue($day->evidence_expires_at->equalTo(now()->addDays(27)));
+        $this->assertTrue($week->evidence_expires_at->equalTo(now()->addDays(21)));
+        $this->assertCount(2, $day->evidence['subjects'][0]['observations']);
+        $this->assertCount(8, $week->evidence['subjects'][0]['observations']);
+        $this->assertCount(4, $day->evidence['metadata_versions']);
+        $this->post('/comparisons/'.$day->id.'/analysis', ['revision' => 0, 'state' => 'draft', 'hypothesis' => '24時間の仮説'])->assertRedirect();
+        $this->travel(11)->minutes();
+        app(Retention::class)->prune();
+        $this->assertNotNull($day->fresh()->evidence);
+        $this->assertSame('24時間の仮説', $day->fresh()->analysis['hypothesis']);
+        $this->get('/comparisons/'.$day->id)->assertOk()->assertViewHas('pack', fn ($pack) => $pack === $day->fresh()->evidence);
+        $this->get('/comparisons/'.$day->id.'/export')->assertJsonCount(2, 'subjects.0.observations')->assertJsonPath('subjects.0.interval.status', 'comparable');
+        $csv = $this->get('/comparisons/'.$day->id.'/export?format=csv')->assertOk()->streamedContent();
+        $this->assertCount(5, array_filter(explode("\n", trim($csv))));
+        $this->travelTo($week->evidence_expires_at);
+        app(Retention::class)->prune();
+        $this->get('/comparisons/'.$week->id.'/export')->assertGone();
+        $this->assertNotNull($day->fresh()->evidence);
     }
 }

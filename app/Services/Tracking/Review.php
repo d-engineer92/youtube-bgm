@@ -16,7 +16,15 @@ class Review
     {
         $observations = $target->observations->filter(fn ($o) => $o->expires_at > now() && $o->fetched_at <= $asOf)->values();
 
-        return ['subject_kind' => $kind, 'target_id' => $target->id, ($kind === 'video' ? 'video_id' : 'channel_id') => $target->external_id, 'first_seen_at' => $target->tracking?->first_seen_at?->toIso8601ZuluString(), 'tracking_state' => $target->tracking?->state, 'tracking_reason' => $target->tracking?->reason, 'next_due_at' => $target->tracking?->next_due_at?->toIso8601ZuluString(), 'ownership' => $target->ownership, 'interval' => app(Interval::class)->resolve($target, $asOf, false, null, $periodHours), 'observations' => $observations->map(fn ($o) => ['observation_id' => $o->id, 'metadata_version_id' => $o->metadata_version_id, 'scheduled_for' => $o->scheduled_for?->toIso8601ZuluString(), 'observed_at' => $o->fetched_at->toIso8601ZuluString(), 'view_count' => $o->view_count, 'like_count' => $o->like_count, 'comment_count' => $o->comment_count, 'subscriber_count' => $o->subscriber_count, 'video_count' => $o->video_count, 'hidden_subscribers' => $o->hidden_subscribers, 'origin' => $o->origin, 'field_status' => $o->field_status, 'expires_at' => $o->expires_at->toIso8601ZuluString()])->all()];
+        $interval = app(Interval::class)->resolve($target, $asOf, false, null, $periodHours);
+        // Freeze only the interval's endpoints/intermediate points and the latest
+        // observation used by the resolver (including a latest NULL value).
+        $latest = $observations->sortByDesc(fn ($o) => [$o->fetched_at->timestamp, $o->id])->first();
+        $observations = $observations->filter(fn ($o) => $o->id === $latest?->id
+            || ($interval['start_at'] && $interval['end_at'] && $o->fetched_at->betweenIncluded($interval['start_at'], $interval['end_at']))
+            || in_array($o->id, array_filter([$interval['start_id'], $interval['end_id']]), true))->values();
+
+        return ['subject_kind' => $kind, 'target_id' => $target->id, ($kind === 'video' ? 'video_id' : 'channel_id') => $target->external_id, 'first_seen_at' => $target->tracking?->first_seen_at?->toIso8601ZuluString(), 'tracking_state' => $target->tracking?->state, 'tracking_reason' => $target->tracking?->reason, 'next_due_at' => $target->tracking?->next_due_at?->toIso8601ZuluString(), 'ownership' => $target->ownership, 'interval' => $interval, 'observations' => $observations->map(fn ($o) => ['observation_id' => $o->id, 'metadata_version_id' => $o->metadata_version_id, 'scheduled_for' => $o->scheduled_for?->toIso8601ZuluString(), 'observed_at' => $o->fetched_at->toIso8601ZuluString(), 'view_count' => $o->view_count, 'like_count' => $o->like_count, 'comment_count' => $o->comment_count, 'subscriber_count' => $o->subscriber_count, 'video_count' => $o->video_count, 'hidden_subscribers' => $o->hidden_subscribers, 'origin' => $o->origin, 'field_status' => $o->field_status, 'expires_at' => $o->expires_at->toIso8601ZuluString()])->all()];
     }
 
     public function pack($targets, ?CarbonImmutable $asOf = null, int $periodHours = 24): array

@@ -144,18 +144,25 @@ class TrackingController extends Controller
 
     public function saveBrief(Request $request, Review $review)
     {
-        $data = $request->validate(['comparison' => ['required', 'integer'], 'brief_id' => ['nullable', 'integer'], 'revision' => ['required', 'integer'], 'content' => ['required', 'array:audience,use,reference,avoid,one_change,music,image,title,budget,hours,permission,validation'], 'content.*' => ['nullable', 'string', 'max:4000'], 'reflection' => ['nullable', 'array:source,period,unit,checked_at,result,next_change,own_video'], 'reflection.*' => ['nullable', 'string', 'max:4000']]);
+        $data = $request->validate(['comparison' => ['required', 'integer'], 'brief_id' => ['nullable', 'integer'], 'analysis_id' => ['nullable', 'uuid'], 'revision' => ['required', 'integer'], 'content' => ['required', 'array:audience,use,reference,avoid,one_change,music,image,title,budget,hours,permission,validation'], 'content.*' => ['nullable', 'string', 'max:4000'], 'reflection' => ['nullable', 'array:source,period,unit,checked_at,result,next_change,own_video'], 'reflection.*' => ['nullable', 'string', 'max:4000']]);
         $c = Comparison::where('source', config('youtube.mode'))->findOrFail($data['comparison']);
         Dataset::assert($c->dataset_id);
 
         return DB::transaction(function () use ($data, $c) {
+            $c = Comparison::lockForUpdate()->findOrFail($c->id);
+            if (! $c->evidence || $c->evidence_expires_at <= now()) {
+                unset($data['content']['reference'], $data['content']['avoid']);
+            }
             if (! empty($data['brief_id'])) {
                 $brief = ProductionBrief::where('source', $c->source)->where('comparison_id', $c->id)->lockForUpdate()->findOrFail($data['brief_id']);
                 abort_unless($brief->revision === (int) $data['revision'], 409);
                 $brief->update(['content' => $data['content'], 'reflection' => $data['reflection'] ?? null, 'revision' => $brief->revision + 1]);
             } else {
-                abort_unless($c->analysis_revision > 0, 422, '先に仮説または未確認を途中保存してください。');
-                $brief = ProductionBrief::create(['dataset_id' => $c->dataset_id, 'source' => $c->source, 'comparison_id' => $c->id, 'analysis_revision' => $c->analysis_revision, 'content' => $data['content'], 'reflection' => $data['reflection'] ?? null]);
+                $analysis = AnalysisRevision::whereKey($data['analysis_id'] ?? null)
+                    ->where('dataset_id', $c->dataset_id)->where('comparison_id', $c->id)->first();
+                abort_unless($analysis, 422, '表示した分析版を確認してください。');
+                abort_unless($c->evidence && $c->evidence_expires_at > now() && $analysis->content !== null && $analysis->expires_at > now(), 410, '参照する根拠は失効しました。本人企画はこのタブの下書きに残ります。');
+                $brief = ProductionBrief::create(['dataset_id' => $c->dataset_id, 'source' => $c->source, 'comparison_id' => $c->id, 'analysis_revision' => $analysis->revision, 'content' => $data['content'], 'reflection' => $data['reflection'] ?? null]);
             }
 
             return redirect()->route('briefs.show', $brief->id)->with('notice', '試作下書きを保存しました。');

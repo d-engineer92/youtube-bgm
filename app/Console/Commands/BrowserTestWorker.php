@@ -15,6 +15,6 @@ class BrowserTestWorker extends Command
     {
         DatabasePolicy::assertTestConnection(app('db')->connection(), app()->environment());
 
-        return $this->call('queue:work', ['connection' => 'database', '--sleep' => 1, '--timeout' => 120, '--tries' => 20]);
+        return $this->call('queue:work', ['connection' => 'database', '--queue' => 'tracking,default', '--sleep' => 1, '--timeout' => 120, '--tries' => 20]);
     }
 }

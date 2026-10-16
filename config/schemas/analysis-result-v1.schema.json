@@ -1,0 +1,67 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Reserved AI result contract; ingestion disabled",
+  "allOf": [
+    {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "analysis-result-v1"
+        },
+        "pack_id": {
+          "type": "string"
+        },
+        "pack_hash": {
+          "type": "string"
+        },
+        "dataset_id": {
+          "type": "string"
+        },
+        "comparison_id": {
+          "type": "integer"
+        },
+        "comparison_revision": {
+          "type": "integer"
+        },
+        "prompt_version": {
+          "type": "string"
+        },
+        "model": {
+          "type": "string"
+        },
+        "observation_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "metadata_version_ids": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "hypotheses": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "schema_version",
+        "pack_id",
+        "pack_hash",
+        "dataset_id",
+        "comparison_id",
+        "comparison_revision",
+        "prompt_version",
+        "model",
+        "observation_ids",
+        "metadata_version_ids",
+        "hypotheses"
+      ]
+    }
+  ]
+}

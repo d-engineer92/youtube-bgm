@@ -75,7 +75,7 @@
 </section>
 @endforeach
 @if($run->tasks->isNotEmpty())
-<section class="panel"><h2>新しい検索候補を確認する</h2><p>候補JSONはCLIで検証・取込します。取込と承認ではAPIを呼びません。承認後の「この候補で調べる」で初めて検索します。</p><p><code>php artisan discovery:import-keywords /app/private/candidates.json</code><br>適用は <code>--apply</code>。固定依頼と形式は <a href="https://github.com/d-engineer92/youtube-bgm/blob/feat/guided-discovery-exp-a-b/docs/discovery/keyword-expansion.md" target="_blank" rel="noopener noreferrer">候補語の作り方 ↗</a> を参照。</p>
+<section class="panel"><h2>新しい検索候補を確認する</h2><p>候補JSONはCLIで検証・取込します。取込と承認ではAPIを呼びません。承認後の「この候補で調べる」で初めて検索します。</p><p><code>php artisan discovery:import-keywords /app/private/candidates.json</code><br>適用は <code>--apply</code>。固定依頼と形式は <a href="https://github.com/d-engineer92/youtube-bgm/blob/main/docs/discovery/keyword-expansion.md" target="_blank" rel="noopener noreferrer">候補語の作り方 ↗</a> を参照。</p>
 @forelse($keywords as $keyword)
 <article class="keyword"><h3>{{ $keyword->label_ja }}</h3><p>{{ $keyword->query }} — {{ $keyword->meaning_ja }}</p><p>{{ $keyword->reason_ja }}</p><p>出どころ：{{ $keyword->source_kind==='manual' ? '本人の提案' : 'Codex候補案' }} / {{ $keyword->prompt_id }} / {{ ['proposed'=>'未承認','approved'=>'承認済み','held'=>'保留','disabled'=>'無効'][$keyword->status] }} / 需要未検証 / {{ $keyword->parent_theme_id ?? '新しいテーマ' }}</p>
 <form action="{{ route('keywords.update',$keyword->id) }}" method="post">@csrf<input type="hidden" name="exploration" value="{{ $run->id }}"><label>候補の状態<select name="status">@foreach(['approved'=>'承認','held'=>'保留','disabled'=>'無効'] as $value=>$label)<option value="{{ $value }}" @selected($keyword->status===$value)>{{ $label }}</option>@endforeach</select></label><button class="secondary">候補の状態を保存</button></form>

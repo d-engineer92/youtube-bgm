@@ -1,7 +1,7 @@
 # Codexへの依頼と受入条件
 
 > 文書ID：TRK-005\
-> 状態：実装依頼仕様、未実装・リセット未実施。整理日：2026-10-16。
+> 状態：段階A/B実装・専用DB/画面/CI検証済み。一回の切替と初回16タスク取得済み、実24時間は未確認。整理日：2026-10-16。
 
 ## 依頼する作業
 
@@ -69,7 +69,7 @@ TRK-AC04/07/08/14/15は固定時計の専用テストDBで即時検証する。T
 
 2026-10-16：仕様反映のみ。段階A/Bとも新規実装・専用PostgreSQL検証・ブラウザー検証・実API・実24時間は未実施。既存EXPの検証成功を新しいTRK受入へ流用しない。
 
-[AUD-005 G01〜G16](../audits/2026-10-16/delivery-and-acceptance.md#4-利用シナリオでの受入確認)を追加受入として採用する。監査本文は根拠/シナリオの参照先であり、実装仕様の正本はTRK/EXP/FTR/RES/POL。各項目に接続先・fixture・実行日時/コマンド・実効DB/ロール・結果・証跡・未確認を残す。現時点は全項目未実施。
+[AUD-005 G01〜G16](../audits/2026-10-16/delivery-and-acceptance.md#4-利用シナリオでの受入確認)を追加受入として採用する。監査本文は根拠/シナリオの参照先であり、実装仕様の正本はTRK/EXP/FTR/RES/POL。各項目に接続先・fixture・実行日時/コマンド・実効DB/ロール・結果・証跡・未確認を残す。仕様反映時点は全項目未実施。後続の実装結果は末尾へ分離して記録する。
 
 | 受入 | 対象正本／既存ACとの関係 | 必須確認 |
 |---|---|---|
@@ -109,3 +109,105 @@ G11は別fixtureの1000本×28日で確認する。一覧は50件以下/ペー�
 - 手動：試聴・画像/コメント観察、本人の仮説採否、権利確認、Studio振り返り、制作/公開。
 - 条件付き無効：追加AI用途・送信、独自分類/評価、長期保存、画像証跡保存。POL-001の具体的条件が確認できるまで起動させない。
 - 後続：LA-3、BPM/キー等DSP拡張、OAuth/Analytics/汎用CSV、旧作業2の残り。有料AI・生成・制作・投稿自動化は今回へ追加しない。
+
+## 段階A/Bの実装検証（PR #8後、2026-10-16）
+
+仕様基点はPR #8 `291e54d`、追加レビューは[比較鮮度の指摘](https://github.com/d-engineer92/youtube-bgm/pull/8#issuecomment-6205027942)。新しい監査文書は作らず、この受入正本へ記録する。実装ブランチは `feat/continuous-tracking-analysis`。通常DBは切替ゲートの確認まで停止し、確認後の結果は末尾とTRK-004に記録する。
+
+### 受入と実テストの対応
+
+| 項目 | 検証先 | 段階・扱い |
+|---|---|---|
+| G01/02、TRK-AC01〜07 | TrackingTest g01_g02、既存CollectionTest/ExplorationTest | A：原子的登録・0基準・全経路・ID重複・日次 |
+| G03、TRK-AC07〜09/16 | TrackingTest g03_*、既存負差分/欠測fixture | A：区間端/鮮度/最新後の未充足/揺れ/復旧/固定過去比較、JSON/CSV共通 |
+| G04、TRK-AC03/04 | TrackingTest g04_versions | A：観測数値・不変メタデータ版・ハッシュ |
+| G05、TRK-AC14/15 | TrackingTest g05_search_expiration、g14_evidence、既存Retention回帰 | A：検索と期限内観測の独立、31日も追跡継続、分析根拠失効 |
+| G06、TRK-AC09〜13/20 | TrackingTest g06_*、既存worker-crash.php | A：世代、130件の3IDバッチ、共有予算予約、停止・再開。実プロセス稼働も別確認 |
+| G07 | TrackingTest g07_upload_scope、既存watched_channel更新テスト | A：既知更新と明示uploads確認を分離、範囲/トークン/再開を維持 |
+| G08 | TrackingTest g08_g13_g15 | A：送信されたsame_channelではなく実channelIdで関係を算出 |
+| G09、TRK-AC18〜20 | TrackingTest g09_*、DatabasePolicyTest | A：専用DBでdry-run/未知テーブル拒否/一回の全消去/台帳保護/二回目不実行 |
+| G10、TRK-AC22 | tests/browser/tracking.cjs | A/B：130異なるID、8テーマ×2枠、PC/390/360px、横断選択と復帰・入力保持 |
+| G11 | tests/Support/tracking-performance.php | A：1000本×28日。10回の応答/SQL/ピークメモリを目標と別記 |
+| G12/13 | TrackingTest g08_g13_g15、g13_conflict、tracking.cjs | B＋手動：未試聴/未観察/未読と仮説/反例・一要素、下書き/本人採否、競合編集拒否 |
+| G14、TRK-AC17 | TrackingTest g14_ai_disabled、Schema実体とsynthetic export検証 | 条件付き無効：AI結果は403。未知ID/別世代の入力も採用しない。許可後の有効な取込は後続 |
+| G15 | TrackingTest g08_g13_g15、tracking.cjs | B＋手動：Studio出所/期間/単位/確認日時と本人企画を分離 |
+| G16 | RES-001資料対応表、AUD-001反映表、本表の照合 | 手動：取得/観測/判断/試作と各制限を個別にレビュー |
+
+TRK-AC21はアプリ回帰・Pint/Composer・LA人工素材・両CIの結果を別記する。TRK-AC23（通常切替/初回取得）と24（実24時間）は、専用fixture成功から推定しない。
+
+### 検証コマンド（同じ専用DBを使うものは直列）
+
+```sh
+docker compose --profile test run --rm test php artisan test --compact
+docker compose --profile test run --rm test php tests/Support/worker-crash.php
+docker compose --profile test up -d --wait test-web test-worker
+docker compose --profile test run --rm browser node tests/browser/exploration.cjs
+docker compose --profile test stop test-worker test-web
+docker compose --profile test up -d --wait test-web
+docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture
+docker compose --profile test run --rm browser node tests/browser/tracking.cjs
+docker compose --profile test stop test-web
+docker compose --profile test up -d --wait test-web
+docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture --count=1000 --days=28
+docker compose --profile test exec -T test-web php tests/Support/tracking-performance.php
+```
+
+fixtureは専用DB識別・制限ロールを照合し、通常DBでは拒否する。実動画・API本文・音源は使わない。Schemaの任意追加検証は `tracking-export.php` の架空出力を `validate-tracking-schema.py`（Python jsonschemaがある環境）へ渡す。これを実API確認と呼ばない。
+
+### ローカル結果（2026-10-16、切替前）
+
+- 専用接続：pgsql / youtube_bgm_test / 制限ロールbgm_test、PostgreSQL 18.6。通常DBを使ったテストではない。
+- アプリ：113テスト・657アサーション成功。SIGKILL/再配信/同run復旧と並列予算予約の実プロセステスト成功。
+- 既存EXP画面：デスクトップの未入力開始→8テーマ/16枠→比較/目的→お気に入り→古い/関連検索→元結果への復帰が成功。既存smokeの手動検索/ページ送り/比較/保存/PC・スマホも成功。
+- 130異なる架空動画：1440×900 / 390×844 / 360×800で変化発見→異なる検索枠の選択→比較→仮説/反例/未知→試作下書き→手動振り返りが成功。発見→比較は自動操作9回（目標10以内）、一巡は約3〜4秒（自動操作の実測であり初心者の所要時間ではない）。復帰条件・選択・再読込時の入力保持、フォーカス、200%拡大を確認。通常倍率の画面画像も目視した。
+- 1000本×28日、28,000観測：HTTP middleware/期限処理/描画を含むウォーム後10回。p95 452.51ms（目標≤1000ms）、最大29 SQL（≤30）、ピーク54MiB（≤128）。24件/ページで全履歴をDOMへ展開しない。ローカル計測であり他環境の保証ではない。
+- 実出力のJSON Schema検証成功。Composer validate、対象ソースのPint、LA-1/2人工素材27テスト成功。リンク検査は文書検査として別扱い。
+- 実API、通常DB切替、初回実取得、実24時間観測、GitHub CIはこの記録時点では未確認。切替条件の最終照合前に通常DBを消去しない。
+
+途中の失敗は成功へ数えない。テストDB共有での起動干渉を解消し直列化、360px/拡大時のはみ出しを修正、1000本fixtureを分割投入、区間計算の繰返し日時変換とEloquent全列取得を削減、稼働/予算表示のSQLをまとめて上記結果を得た。
+
+CI初回の新fixture投入はtest-webのmigrate:fresh完了前に始まり失敗した。以後は `docker compose up -d --wait test-web` のhealthcheck完了を待って投入する。通常DBの読取確認でinet_server_addrのtext表記に/32が付くことも確認し、切替先照合はPostgreSQL host(inet_server_addr())のホスト部分でDNS結果と比較する。いずれの修正前にも通常DB消去は実行していない。
+
+関連チャンネルも根拠パックへ分離して含め、JSON/CSVの登録者/総再生/動画数/hidden状態と各時刻を確認する回帰を追加した。CSV列契約を実ファイルに集約し、demo/liveのsourceと取得由来も出力する。CIで選択トレイ初期化前にチェック操作する競合が出たため、選択UIは初期化完了まで無効化し、ブラウザーテストはdata-readyを確認して操作する。単なる待ち時間追加ではなく、入力受付前の状態を明示する。
+
+G03の復旧回帰は、最後に充足した予定枠より前のmissedを保持しながら、新しい正常区間が現在比較へ復帰することも確認した。113テスト・657アサーション成功。実装681f24eのGitHub push/PR両方でアプリ・LA CIも成功した。
+
+
+### CI・通常環境の実施結果（2026-10-16）
+
+実装PRは[#9](https://github.com/d-engineer92/youtube-bgm/pull/9)、仕様PR #8をbaseとする別ブランチ。切替対象は `681f24e1dd810929a854e733d8f83acf08c097e0`。[アプリpush](https://github.com/d-engineer92/youtube-bgm/actions/runs/38835256109)、[アプリPR](https://github.com/d-engineer92/youtube-bgm/actions/runs/38835260929)、[LA push](https://github.com/d-engineer92/youtube-bgm/actions/runs/38835256049)、[LA PR](https://github.com/d-engineer92/youtube-bgm/actions/runs/38835260871)が全て成功。マージはしていない。
+
+| 区分 | 確認結果・残り |
+|---|---|
+| 段階A/B | 実装・専用PostgreSQL・130本の画面操作・1000本の性能計測は上記の範囲で完了。G14は無効時の拒否を確認し、有効なAI取込は未実装。手動の採否・試聴・権利確認・制作/投稿は利用者が行う |
+| 通常DB切替 | 2026-10-16 10:33:41 JST、一回だけ実行。対象/件数/保護確認は[TRK-004の実行記録](reset-cutover.md#実行記録2026-10-16)を正本とする。段階Bや改善で再消去しない |
+| 初回実取得 | 既定16ページ中4ページを取得。動画30本・関連チャンネル26件、全56対象に追跡と次回予定あり。観測76件全てにメタデータ版がある。お気に入り登録を条件にしていない |
+| 予算による途中停止 | 既存台帳を維持したため当日search残枠は4回だった。初回の追加消費search4/read8、当日合計search20/read40。探索はdaily_limitで停止し、残12タスク（failed1/pending11）は既存の再開導線で日次枠回復後に再開する。全16ページ取得済みとは扱わない |
+| 通常稼働 | web/worker/scheduler起動、通常DB稼働。/tracking・/・/policyのHTTP 200を確認。これは実データでの一巡操作や複数日稼働の証明ではない |
+| 実24時間観測 | 未確認。初回は10/16 10:35:45 JST、最早の次回予定は10/17 10:35:45 JST。ホストとworker/schedulerの継続稼働、実予定到来後の2点目・欠測・予算の確認が必要。時計操作のテストで代用しない |
+
+Gitには実APIの識別子・統計値・本文・画面・分析結果を収録せず、ここには運転確認の集計だけを記録した。AI用途、長期保持、画像証跡は条件未確認のため無効を維持する。初心者による所要時間・実24時間の更新・残12タスクの再開は未確認事項として残す。
+
+
+### PR #9レビューR1〜R3の修正・再開記録（2026-10-16）
+
+対象は[レビューコメント](https://github.com/d-engineer92/youtube-bgm/pull/9#issuecomment-6212229365)。同じPR内で既存の参照・期限契約を修正し、新しい監査/仕様書や追加機能は作らない。契約の正本は[TRK-003の保存経路](review-and-export.md#出力と保存経路の具体化2026-10-16)。
+
+| 指摘 | 修正と回帰証跡 |
+|---|---|
+| R1 | briefフォームの分析UUIDを同じ世代・source・比較の不変版としてサーバーで照合し、新規下書きに固定。TrackingTest::test_r1_*は別比較のUUID/未指定も拒否。tracking.cjsは1440/390/360pxでv1フォーム表示→別タブv2保存→元フォーム保存→v1参照を確認 |
+| R2 | reference/avoidのタブ内下書きは本人企画と別キー、evidence_expires_atで失効。旧形式の混合下書きも除去。画面再表示/ページ復帰/期限到来時に消し、サーバーは直接POSTでも再受理しない。TrackingTest::test_r2_*、brief-expiry.cjsで実際の期限到来→prune→戻る→再読込→直接POSTと、本人企画/振り返り保持を確認 |
+| R3 | Review::subjectは選択区間の実測両端・中間点・判定に必要な最新点と対応版だけを固定。TrackingTest::test_r3_*は28日ローリング28点/対象、期間外の残10分の観測と独立した各版を使用。24h比較は2点/対象、期限は必要点の残27日。7d比較は8点/対象、必要点の残21日で失効する。画面pack/JSON/CSVの範囲は共通。必要根拠の期限を延長しない |
+
+ローカル回帰はpgsql / youtube_bgm_test / 制限ロールbgm_test / PostgreSQL 18.6。アプリ全体116テスト・695アサーション成功、R1の実ブラウザー3画面幅、R2の実ブラウザー390px、Composer validate/Pint成功、LA-1/2人工素材27テスト成功を確認した。CIにもR2の専用DB fixtureと実ブラウザーを追加した。リンク検査を機能検証の代わりにしない。
+
+R2ブラウザー再実行手順（130本fixtureとtracking.cjsの後、test-web稼働中）：
+
+```sh
+docker compose --profile test exec -T test-web php tests/Support/brief-expiry-fixture.php > /tmp/bgm-exploration/brief-expiry.json
+docker compose --profile test run --rm browser node tests/browser/brief-expiry.cjs
+```
+
+通常環境は同じ新世代を維持。2026-10-16 18:20 JST台に日次枠の回復を確認し、既存探索の残12タスクを既存Planner::resumeで再開、16/16 completeになった。追加消費はsearch12/read24、探索累計は16/32。新規探索は作っていない。動画128本・関連チャンネル117件、全245対象が追跡中、観測309件。再開前の56対象のfirst_seen_at/next_due_at、76観測の全行ハッシュ、分析/試作のハッシュ、過去日API台帳行の不変を再開後に照合した（分析/試作は再開前後とも0件）。実データ本文や外部IDはGitに含めない。
+
+再消去・旧世代復元・API台帳初期化は実行していない。実24時間観測はまだ未到来で未確認。最早予定は10/17 10:35:45 JSTのまま。今回後から加わった対象の初回/次回は別の時刻になる。初回探索内の重複取得を日次2点目の確認と数えない。

@@ -62,6 +62,11 @@ class ApiCaller
                 if ($row->blocked || $limit <= $row->$column) {
                     throw new ApiFailure('daily_limit');
                 }
+                $due = DB::table('tracking_targets')->join('targets', 'targets.id', '=', 'tracking_targets.target_id')->where('targets.source', $source)->where('tracking_targets.state', 'active')->where('next_due_at', '<=', now())->selectRaw('targets.kind, count(*) as n')->groupBy('targets.kind')->get();
+                $reserved = $due->sum(fn ($group) => (int) ceil($group->n / 50));
+                if (! app()->bound('tracking_request') && $reserved > 0 && ($column === 'search_calls' || $row->read_calls + $reserved >= config('youtube.daily_read_calls'))) {
+                    throw new ApiFailure('tracking_budget_reserved');
+                }
                 $q->increment($column);
                 if ($exploration) {
                     $exploration->increment($column);

@@ -1,6 +1,6 @@
 @php use App\Support\Presentation as P; $target=$item->target; $video=$target->video; $channel=$channels->get($video->channel_external_id)?->channel; $delta=P::dailyDelta($target); @endphp
 <article class="card exploration-video">
-    <label class="check"><input form="{{ $formId }}" type="checkbox" name="ids[]" value="{{ $target->id }}">比較・ウォッチに選ぶ（検索順位{{ $item->search_rank }}）</label>
+    <label class="check"><input form="{{ $formId }}" type="checkbox" disabled name="ids[]" value="{{ $target->id }}">比較・ウォッチに選ぶ（検索順位{{ $item->search_rank }}）</label>
     @if($video->thumbnail_url)<img loading="lazy" src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" referrerpolicy="no-referrer">@else<div class="no-image">サムネイル未取得</div>@endif
     <h3><a href="https://www.youtube.com/watch?v={{ $target->external_id }}" target="_blank" rel="noopener noreferrer">{{ $video->title }}</a></h3>
     <p>{{ $channel?->title ?? 'チャンネル名未取得' }}</p><p>形態：{{ P::broadcast($video->broadcast_status) }}{{ $video->has_live_details ? ' / ライブ履歴あり' : '' }}</p>

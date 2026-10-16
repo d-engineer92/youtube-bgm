@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ExplorationController;
 use App\Http\Controllers\ResearchController;
+use App\Http\Controllers\TrackingController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [ResearchController::class, 'index'])->name('discovery');
@@ -23,3 +24,16 @@ Route::post('/discovery-keywords/{id}', [ExplorationController::class, 'keyword'
 Route::get('/compare', [ResearchController::class, 'compare'])->name('compare');
 Route::post('/comparisons', [ResearchController::class, 'saveComparison'])->name('comparisons.store');
 Route::get('/comparisons/{id}', [ResearchController::class, 'compare'])->name('comparisons.show');
+
+Route::get('/tracking', [TrackingController::class, 'index'])->name('tracking');
+Route::post('/tracking/{id}/state', [TrackingController::class, 'state'])->name('tracking.state');
+Route::get('/comparisons/{id}/export', [TrackingController::class, 'export'])->name('tracking.export');
+Route::post('/comparisons/{id}/analysis', [TrackingController::class, 'analysis'])->name('analysis.save');
+Route::get('/briefs/new', [TrackingController::class, 'brief'])->name('briefs.new');
+Route::get('/briefs/{id}', [TrackingController::class, 'brief'])->name('briefs.show');
+Route::post('/briefs', [TrackingController::class, 'saveBrief'])->name('briefs.save');
+Route::get('/policy', fn () => view('policy'))->name('policy');
+
+Route::post('/comparisons/{id}/ai-result', fn () => abort(403, 'AI用途は条件未確認のため無効です。'));
+
+Route::get('/selection', [TrackingController::class, 'selection'])->name('selection');

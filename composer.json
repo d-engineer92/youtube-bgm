@@ -42,7 +42,7 @@
             "@php artisan test"
         ],
         "lint": [
-            "@php vendor/bin/pint --test"
+            "@php vendor/bin/pint --test app config database routes tests bootstrap/app.php bootstrap/providers.php"
         ],
         "pre-autoload-dump": [
             "Google\\Task\\Composer::cleanup"

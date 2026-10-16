@@ -1,7 +1,7 @@
 @extends('layout')
 @section('content')
 @php use App\Support\Presentation as P; $channelMap = $channels->keyBy('external_id'); @endphp
-<div class="intro"><p class="eyebrow">画面A / DISCOVER & WATCH</p><h1>探す・追う</h1><p>用途や雰囲気で候補を探し、取得できた範囲から比較する動画を選びます。</p></div>
+<p><a href="{{ route('tracking') }}">追跡結果・変化を見る →</a></p><div class="intro"><p class="eyebrow">画面A / DISCOVER & WATCH</p><h1>探す・追う</h1><p>用途や雰囲気で候補を探し、取得できた範囲から比較する動画を選びます。</p></div>
 <section class="panel exploration-entry">
     <p class="eyebrow">言葉が決まっていなくても、ここから</p>
     <h2>どんなBGMを作るか、まだ決まっていなくても大丈夫です。</h2>
@@ -61,7 +61,7 @@
     @forelse($videos as $video)
         @php $target=$video->target; $channel=$channelMap->get($video->channel_external_id)?->channel; $delta=P::delta($target); @endphp
         <article class="card">
-            <label class="check"><input form="compare-form" type="checkbox" name="ids[]" value="{{ $target->id }}">比較に選ぶ</label>
+            <label class="check"><input form="compare-form" type="checkbox" disabled name="ids[]" value="{{ $target->id }}">比較に選ぶ</label>
             @if($video->thumbnail_url)<img loading="lazy" src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" referrerpolicy="no-referrer">@else<div class="no-image">サムネイル未取得</div>@endif
             <h3><a href="https://www.youtube.com/watch?v={{ $target->external_id }}" target="_blank" rel="noopener noreferrer">{{ $video->title }}</a></h3>
             <p>{{ $channel?->title ?? 'チャンネル名未取得' }}</p><span class="badge">{{ P::status($target->last_status) }}</span>

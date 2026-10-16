@@ -19,6 +19,16 @@ class Target extends Model
         return $q->where('source', config('youtube.mode'));
     }
 
+    public function tracking()
+    {
+        return $this->hasOne(TrackingTarget::class);
+    }
+
+    public function slots()
+    {
+        return $this->hasMany(TrackingSlot::class);
+    }
+
     public function video()
     {
         return $this->hasOne(Video::class);

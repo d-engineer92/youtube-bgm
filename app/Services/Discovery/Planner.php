@@ -6,6 +6,7 @@ use App\Jobs\CollectExploration;
 use App\Models\Exploration;
 use App\Models\ExplorationKeyword;
 use App\Models\ExplorationTask;
+use App\Services\Tracking\Dataset;
 use Carbon\CarbonImmutable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -32,7 +33,7 @@ class Planner
                 return $existing;
             }
             $t0 = CarbonImmutable::now('UTC')->startOfSecond();
-            $run = Exploration::create(['id' => (string) Str::uuid(), 'source' => config('youtube.mode'), 'idempotency_key' => $token, 'preset_id' => $preset, 'parent_exploration_id' => $parent?->id, 't0' => $t0, 'catalog_version' => $catalog['version'], 'catalog_hash' => $catalog['hash'], 'search_limit' => config('discovery.search_limit'), 'read_limit' => config('discovery.read_limit'), 'expires_at' => now()->addDays(config('youtube.retention_days'))]);
+            $run = Exploration::create(['dataset_id' => Dataset::id(), 'id' => (string) Str::uuid(), 'source' => config('youtube.mode'), 'idempotency_key' => $token, 'preset_id' => $preset, 'parent_exploration_id' => $parent?->id, 't0' => $t0, 'catalog_version' => $catalog['version'], 'catalog_hash' => $catalog['hash'], 'search_limit' => config('discovery.search_limit'), 'read_limit' => config('discovery.read_limit'), 'expires_at' => now()->addDays(config('youtube.retention_days'))]);
             $position = 0;
             if ($selection) {
                 $this->task($run, $selection, $selection['lens'], $catalog, $position++);

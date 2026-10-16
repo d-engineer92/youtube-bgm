@@ -3,6 +3,7 @@
 namespace App\Support;
 
 use App\Models\Target;
+use App\Services\Tracking\Interval;
 
 class Presentation
 {
@@ -32,7 +33,7 @@ class Presentation
     public static function error(?string $reason): string
     {
         return match ($reason) {
-            null => '', 'key_missing' => 'APIキー未設定。サーバーの.envに設定してください。実APIの取得は行われていません。',
+            null => '', 'cutover_required' => '新方式の安全な切替前です。取得は停止しています。', 'old_generation' => '旧世代の操作です。現在の一覧からやり直してください。', 'tracking_budget_reserved' => '全動画の追跡用に予算を予約しています。新規発見は待機中です。', 'key_missing' => 'APIキー未設定。サーバーの.envに設定してください。実APIの取得は行われていません。',
             'run_limit' => 'この探索の送信試行上限に達しました。途中結果を保存しました。',
             'halt_requested' => '停止を受け付けました。保存済み結果は残っています。',
             'worker_error' => 'ワーカーが中断しました。起動を確認して続きから再開してください。',
@@ -47,20 +48,17 @@ class Presentation
 
     public static function delta(Target $target): array
     {
-        if ($target->last_status !== 'success') {
-            return ['label' => '今回の増分は未確認', 'interval' => '', 'note' => ''];
+        $i = app(Interval::class)->resolve($target);
+        $label = match ($i['status']) {
+            'latest_value_missing' => '未観測（数値欠損・増分未確認）',
+            'latest_attempt_failed' => '今回の増分は未確認（観測停止・取得失敗）',
+            default => $i['delta_views'] === null ? '未観測（初回または数値欠損）' : ($i['elapsed_seconds'] < 22 * 3600 ? '未観測（日次ではない参考区間） ' : '').($i['delta_views'] > 0 ? '+' : '').number_format($i['delta_views']),
+        };
+        if ($target->last_status === 'failed') {
+            $label = '今回の増分は未確認（観測停止・取得失敗）';
         }
-        $points = $target->observations->filter(fn ($o) => $o->expires_at > now())->take(2)->values();
-        if ($points->count() < 2) {
-            return ['label' => '未観測（初回または前回データが失効）', 'interval' => '', 'note' => ''];
-        }
-        [$current, $previous] = [$points[0], $points[1]];
-        if ($current->view_count === null || $previous->view_count === null) {
-            return ['label' => '数値欠損・増分未確認', 'interval' => '', 'note' => ''];
-        }
-        $difference = $current->view_count - $previous->view_count;
 
-        return ['label' => ($difference > 0 ? '+' : '').number_format($difference), 'interval' => self::date($previous->fetched_at).' → '.self::date($current->fetched_at).'（'.round($previous->fetched_at->diffInHours($current->fetched_at), 2).'時間）', 'note' => $difference < 0 ? '負の差分：訂正等の可能性。0へ補正していません。' : ''];
+        return ['label' => $label, 'interval' => ($i['start_at'] ?? '').' → '.($i['end_at'] ?? '').'（'.round(($i['elapsed_seconds'] ?? 0) / 3600, 2).'時間）', 'note' => ($i['delta_views'] < 0 ? '負の差分：訂正等の可能性。' : '').($i['eligible'] ? '比較可能な約24時間区間。両端時刻を確認してください。' : '更新遅延／参考区間：'.$i['status'])];
     }
 
     public static function lens(string $lens): string
@@ -79,20 +77,6 @@ class Presentation
 
     public static function dailyDelta(Target $target): array
     {
-        if ($target->last_status !== 'success') {
-            return ['label' => '今回の増分は未確認（観測停止・取得失敗）', 'interval' => '', 'note' => '停止中の観測は補完しません。'];
-        }
-        $points = $target->observations->filter(fn ($o) => $o->expires_at > now())->values();
-        $current = $points->first();
-        if ($current && $current->view_count === null) {
-            return ['label' => '数値欠損・増分未確認', 'interval' => '', 'note' => ''];
-        }
-        $previous = $current ? $points->first(fn ($o) => $o->id !== $current->id && $o->fetched_at <= $current->fetched_at->subHours(24) && $o->view_count !== null) : null;
-        if (! $previous) {
-            return ['label' => '未観測（24時間以上離れた有効な観測がありません）', 'interval' => '', 'note' => '初回・短間隔の取得は日次増加にしません。'];
-        }
-        $diff = $current->view_count - $previous->view_count;
-
-        return ['label' => '実観測間の差分：'.($diff > 0 ? '+' : '').number_format($diff), 'interval' => self::date($previous->fetched_at).' → '.self::date($current->fetched_at).'（'.round($previous->fetched_at->diffInHours($current->fetched_at), 2).'時間）', 'note' => $diff < 0 ? '負の差分：訂正等の可能性。0へ補正しません。' : '日次換算や停止期間の補間はしていません。'];
+        return self::delta($target);
     }
 }

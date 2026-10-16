@@ -44,3 +44,7 @@ PHP 8.5.10、Laravel 13、PostgreSQL 18、Blade、公式`google/apiclient`を採
 - [保存期限](../compliance/data-retention.md)
 
 [文書一覧へ戻る](../README.md)
+
+## 追跡改修のデータ責務（2026-10-16採用・未実装）
+
+切替前の対象/検索所属/観測/メタデータ版は[TRK-002](../tracking/storage-and-jobs.md)、期間計算は[RES-002](../research/metrics.md)、比較/分析/企画の参照は[TRK-003](../tracking/review-and-export.md)を正本とする。既存の観測→検索run cascadeとウォッチ限定は旧実装であり、改修後の契約として使用しない。同じPostgreSQL内で責務を分離し、通常の改善は追加migrationと版で進める。

@@ -140,14 +140,14 @@ TRK-AC21はアプリ回帰・Pint/Composer・LA人工素材・両CIの結果を�
 ```sh
 docker compose --profile test run --rm test php artisan test --compact
 docker compose --profile test run --rm test php tests/Support/worker-crash.php
-docker compose --profile test up -d test-web test-worker
+docker compose --profile test up -d --wait test-web test-worker
 docker compose --profile test run --rm browser node tests/browser/exploration.cjs
 docker compose --profile test stop test-worker test-web
-docker compose --profile test up -d test-web
+docker compose --profile test up -d --wait test-web
 docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture
 docker compose --profile test run --rm browser node tests/browser/tracking.cjs
 docker compose --profile test stop test-web
-docker compose --profile test up -d test-web
+docker compose --profile test up -d --wait test-web
 docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture --count=1000 --days=28
 docker compose --profile test exec -T test-web php tests/Support/tracking-performance.php
 ```
@@ -160,8 +160,10 @@ fixtureは専用DB識別・制限ロールを照合し、通常DBでは拒否す
 - アプリ：111テスト・645アサーション成功。SIGKILL/再配信/同run復旧と並列予算予約の実プロセステスト成功。
 - 既存EXP画面：デスクトップの未入力開始→8テーマ/16枠→比較/目的→お気に入り→古い/関連検索→元結果への復帰が成功。既存smokeの手動検索/ページ送り/比較/保存/PC・スマホも成功。
 - 130異なる架空動画：1440×900 / 390×844 / 360×800で変化発見→異なる検索枠の選択→比較→仮説/反例/未知→試作下書き→手動振り返りが成功。発見→比較は自動操作9回（目標10以内）、一巡は各約3秒（自動操作の実測であり初心者の所要時間ではない）。復帰条件・選択・再読込時の入力保持、フォーカス、200%拡大を確認。通常倍率の画面画像も目視した。
-- 1000本×28日、28,000観測：HTTP middleware/期限処理/描画を含むウォーム後10回。p95 428.13ms（目標≤1000ms）、最大29 SQL（≤30）、ピーク54MiB（≤128）。24件/ページで全履歴をDOMへ展開しない。ローカル計測であり他環境の保証ではない。
+- 1000本×28日、28,000観測：HTTP middleware/期限処理/描画を含むウォーム後10回。p95 452.51ms（目標≤1000ms）、最大29 SQL（≤30）、ピーク54MiB（≤128）。24件/ページで全履歴をDOMへ展開しない。ローカル計測であり他環境の保証ではない。
 - 実出力のJSON Schema検証成功。Composer validate、対象ソースのPint、LA-1/2人工素材27テスト成功。リンク検査は文書検査として別扱い。
 - 実API、通常DB切替、初回実取得、実24時間観測、GitHub CIはこの記録時点では未確認。切替条件の最終照合前に通常DBを消去しない。
 
 途中の失敗は成功へ数えない。テストDB共有での起動干渉を解消し直列化、360px/拡大時のはみ出しを修正、1000本fixtureを分割投入、区間計算の繰返し日時変換とEloquent全列取得を削減、稼働/予算表示のSQLをまとめて上記結果を得た。
+
+CI初回の新fixture投入はtest-webのmigrate:fresh完了前に始まり失敗した。以後は `docker compose up -d --wait test-web` のhealthcheck完了を待って投入する。通常DBの読取確認でinet_server_addrのtext表記に/32が付くことも確認し、切替先照合はPostgreSQL host(inet_server_addr())のホスト部分でDNS結果と比較する。いずれの修正前にも通常DB消去は実行していない。

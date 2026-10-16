@@ -18,21 +18,21 @@ jobs:
       - run: docker compose --profile test build browser
       - run: |
           mkdir -p /tmp/bgm-exploration
-          docker compose --profile test up -d test-web
+          docker compose --profile test up -d --wait test-web
           docker compose --profile test run --rm browser node tests/browser/smoke.cjs
           docker compose --profile test stop test-web
-          docker compose --profile test up -d test-web test-worker
+          docker compose --profile test up -d --wait test-web test-worker
           docker compose --profile test run --rm browser
           docker compose --profile test stop test-worker test-web
-          docker compose --profile test up -d test-web test-worker
+          docker compose --profile test up -d --wait test-web test-worker
           docker compose --profile test run --rm -e BGM_VIEW=mobile browser
           docker compose --profile test stop test-worker test-web
       - run: |
-          docker compose --profile test up -d test-web
+          docker compose --profile test up -d --wait test-web
           docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture
           docker compose --profile test run --rm browser node tests/browser/tracking.cjs
           docker compose --profile test stop test-web
-          docker compose --profile test up -d test-web
+          docker compose --profile test up -d --wait test-web
           docker compose --profile test exec -T test-web php artisan bgm:tracking-fixture --count=1000 --days=28
           docker compose --profile test exec -T test-web php tests/Support/tracking-performance.php
           docker compose --profile test stop test-web

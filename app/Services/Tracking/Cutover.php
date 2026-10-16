@@ -26,7 +26,7 @@ class Cutover
             if (! app()->runningInConsole() || ! app()->environment('local') || $c['driver'] !== 'pgsql' || $c['host'] !== 'db' || $c['database'] !== 'youtube_bgm' || $c['username'] !== 'bgm' || (string) $c['port'] !== '5432' || isset($c['read']) || isset($c['write'])) {
                 throw new RuntimeException('Refusing cutover outside the local Compose allowlist.');
             }
-            $identity = DB::selectOne('select current_database() as name, current_user as role, inet_server_addr()::text as address');
+            $identity = DB::selectOne('select current_database() as name, current_user as role, host(inet_server_addr()) as address');
             if ($identity->name !== 'youtube_bgm' || $identity->role !== 'bgm' || $identity->address !== gethostbyname('db')) {
                 throw new RuntimeException('Unexpected effective PostgreSQL identity.');
             }

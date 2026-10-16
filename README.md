@@ -76,15 +76,15 @@ mkdir -p /tmp/bgm-exploration
 docker compose --profile test build browser
 # test-webが専用DBを初期化。PHPUnit・プロセステストとは直列で実行
 # 既存の手動検索・比較・ウォッチ
-docker compose --profile test up -d test-web
+docker compose --profile test up -d --wait test-web
 docker compose --profile test run --rm browser node tests/browser/smoke.cjs
 docker compose --profile test stop test-web
 # PC：未入力開始から深掘りまで。test-web起動後に単一workerを開始
-docker compose --profile test up -d test-web test-worker
+docker compose --profile test up -d --wait test-web test-worker
 docker compose --profile test run --rm browser
 docker compose --profile test stop test-worker test-web
 # スマートフォン：専用DBを新しく初期化して同じ操作（予算上限は変更しない）
-docker compose --profile test up -d test-web test-worker
+docker compose --profile test up -d --wait test-web test-worker
 docker compose --profile test run --rm -e BGM_VIEW=mobile browser
 docker compose --profile test stop test-worker test-web
 # 実SIGKILLと並列予算予約。専用テストDBだけを初期化

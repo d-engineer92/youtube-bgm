@@ -51,7 +51,7 @@ JSON v1の必須項目：
 | subjects[].intervals[] | 両端observation_id、delta_views、elapsed_seconds、growth_percentまたはNULL、算出不可理由、欠測情報 |
 | limitations[] | 初回以前は未観測、原本未聴取、現在の画像と過去の画像は別、履歴期間制限など |
 
-CSVは1行1実観測。`dataset_id,video_id,observation_id,scheduled_for,observed_at,view_count,previous_observation_id,delta_views,elapsed_seconds,growth_percent,comparison_status,expires_at` を固定列とする。欠測予定を出す場合は別行種別を設け、観測値を0で作らない。UTF-8、数式注入対策、NULLの表記、日時形式を文書化・テストする。
+CSVはsubject_kindで動画とチャンネルを区別した1行1実観測。列・空欄・boolean・日時の契約は[CSV Schema実体](../../config/schemas/tracking-review-v1.csv.json)を正本とする。チャンネルは重複排除し、動画側へ登録者数を複製しない。欠測を0で埋めず、UTF-8・数式注入対策を適用する。
 
 書き出しは明示操作時のみ。アプリのダウンロード応答はno-storeにし、サーバー側の永続コピーは原則作らない。作る場合は管理下の期限付き領域に限定し、リセット・期限処理対象にする。利用者が外へコピーしたファイルはアプリが消せないので期限を明示する。
 
@@ -95,3 +95,5 @@ AI利用は[POL-001](../compliance/data-retention.md)の用途・送信条件が
 試作本文のreference/avoidはAPI根拠に依存する観察欄として最短根拠期限で削除する。本人の用途・一要素・予算・制作要件・手動Studio振り返りはAPIキャッシュと分離する。参照先の失効状態は比較IDを通じて残す。
 
 共通トレイの動画名はGET /selectionで期限内の表示だけを取得し、ブラウザーstorageへAPIタイトルを複製しない。選択ごとに外す操作を用意する。CSVのexpires_atは観測単独の期限でなくpack全体の最短期限を表示する。
+
+根拠パックはsubjects（選択動画）とchannels（関連チャンネル）を分離し、どちらの観測・メタデータ版も最短期限と参照検査へ含める。チャンネルの登録者/総再生/公開動画数・hidden状態はその実取得時刻とともに表示し、動画と同時刻だったと仮定しない。JSON/CSVとも由来とsubject_kindを維持する。

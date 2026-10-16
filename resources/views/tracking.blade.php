@@ -16,7 +16,7 @@
 <div class="tracking-list">@if($videos->isEmpty())<p>この条件では対象がありません。<a href="{{ route('discovery') }}">語を入力せず探索を始める</a>、または絞込を解除してください。</p>@endif
 @foreach($videos as $target) @php $v=$target->video; $i=$summary[$target->id]; @endphp
 <article class="panel tracking-row" data-target="{{ $target->id }}">
-<label class="check"><input type="checkbox" data-tray-id="{{ $target->id }}">比較に選ぶ</label>
+<label class="check"><input type="checkbox" disabled data-tray-id="{{ $target->id }}">比較に選ぶ</label>
 @if($v?->thumbnail_url)<img loading="lazy" class="tracking-thumb" src="{{ $v->thumbnail_url }}" alt="{{ $v->title }}" referrerpolicy="no-referrer">@else<span class="no-image">画像未取得</span>@endif
 <h2>{{ $v?->title ?? '公開情報は失効／未取得' }}</h2><p>{{ $v?->channel_title ?? 'チャンネル名未取得' }} · {{ P::duration($v?->duration_seconds) }} · 公開 {{ P::date($v?->published_at) }}</p>
 <dl><dt>現在再生数</dt><dd>{{ P::number($v?->view_count) }}</dd><dt>実観測増分</dt><dd>{{ P::number($i['delta_views']) }} ／ {{ round(($i['elapsed_seconds'] ?? 0)/3600,2) }}時間</dd><dt>比較区分</dt><dd>{{ $i['eligible'] ? '現在比較可能' : '観測待ち／更新遅延・参考区間' }} <small>{{ $i['status'] }}</small></dd><dt>両端UTC</dt><dd>{{ $i['start_at'] ?? '初回のみ' }} → {{ $i['end_at'] ?? '未観測' }}</dd><dt>次回予定</dt><dd>{{ P::date($target->tracking->next_due_at) }} {{ $target->tracking->reason ? '（'.P::error($target->tracking->reason).'）' : '' }}</dd></dl>

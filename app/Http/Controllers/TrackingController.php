@@ -97,12 +97,15 @@ class TrackingController extends Controller
 
         return response()->streamDownload(function () use ($pack) {
             $f = fopen('php://output', 'w');
-            fputcsv($f, ['dataset_id', 'comparison_id', 'comparison_revision', 'video_id', 'observation_id', 'metadata_version_id', 'scheduled_for', 'observed_at', 'view_count', 'previous_observation_id', 'delta_views', 'elapsed_seconds', 'growth_percent', 'comparison_status', 'resolver_version', 'as_of', 'expires_at', 'requested_period_hours'], escape: '');
-            foreach ($pack['subjects'] as $subject) {
+            $columns = json_decode(file_get_contents(config_path('schemas/tracking-review-v1.csv.json')), true, flags: JSON_THROW_ON_ERROR)['columns'];
+            fputcsv($f, $columns, escape: '');
+            foreach (array_merge($pack['subjects'], $pack['channels'] ?? []) as $subject) {
                 $i = $subject['interval'];
                 foreach ($subject['observations'] as $o) {
                     $endpoint = $o['observation_id'] === $i['end_id'];
-                    $row = [$pack['dataset_id'], $pack['comparison_id'], $pack['comparison_revision'], $subject['video_id'], $o['observation_id'], $o['metadata_version_id'], $o['scheduled_for'], $o['observed_at'], $o['view_count'], $endpoint ? $i['start_id'] : null, $endpoint ? $i['delta_views'] : null, $endpoint ? $i['elapsed_seconds'] : null, $endpoint ? $i['growth_percent'] : null, $i['status'], $i['resolver_version'], $pack['as_of'], $pack['expires_at'], $pack['requested_period_hours']];
+                    $hidden = $o['hidden_subscribers'] ?? null;
+                    $row = ['dataset_id' => $pack['dataset_id'], 'comparison_id' => $pack['comparison_id'], 'comparison_revision' => $pack['comparison_revision'], 'video_id' => $subject['video_id'] ?? null, 'channel_id' => $subject['channel_id'] ?? null, 'subject_kind' => $subject['subject_kind'] ?? 'video', 'source' => $pack['source'], 'origin' => $o['origin'] ?? 'manual', 'observation_id' => $o['observation_id'], 'metadata_version_id' => $o['metadata_version_id'], 'scheduled_for' => $o['scheduled_for'], 'observed_at' => $o['observed_at'], 'view_count' => $o['view_count'], 'like_count' => $o['like_count'], 'comment_count' => $o['comment_count'], 'subscriber_count' => $o['subscriber_count'], 'video_count' => $o['video_count'], 'hidden_subscribers' => $hidden === null ? null : ($hidden ? 'true' : 'false'), 'previous_observation_id' => $endpoint ? $i['start_id'] : null, 'delta_views' => $endpoint ? $i['delta_views'] : null, 'elapsed_seconds' => $endpoint ? $i['elapsed_seconds'] : null, 'growth_percent' => $endpoint ? $i['growth_percent'] : null, 'rate_reason' => $i['rate_reason'], 'comparison_status' => $i['status'], 'resolver_version' => $i['resolver_version'], 'as_of' => $pack['as_of'], 'expires_at' => $pack['expires_at'], 'requested_period_hours' => $pack['requested_period_hours'], 'field_status_json' => json_encode($o['field_status'], JSON_THROW_ON_ERROR)];
+                    $row = array_map(fn ($column) => $row[$column] ?? null, $columns);
                     fputcsv($f, array_map(fn ($v) => is_string($v) && preg_match('/^[=+@\-\t\r]/', $v) ? "'".$v : $v, $row), escape: '');
                 }
             }

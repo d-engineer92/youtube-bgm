@@ -12,6 +12,6 @@ class Observation extends Model
 
     protected function casts(): array
     {
-        return ['field_status' => 'array', 'scheduled_for' => 'immutable_datetime', 'fetched_at' => 'immutable_datetime', 'expires_at' => 'immutable_datetime'];
+        return ['hidden_subscribers' => 'boolean', 'field_status' => 'array', 'scheduled_for' => 'immutable_datetime', 'fetched_at' => 'immutable_datetime', 'expires_at' => 'immutable_datetime'];
     }
 }

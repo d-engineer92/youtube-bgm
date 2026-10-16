@@ -1,0 +1,46 @@
+{
+  "schema_version": "tracking-review-v1",
+  "encoding": "UTF-8",
+  "null": "empty cell",
+  "boolean": [
+    "true",
+    "false"
+  ],
+  "datetime": "ISO 8601 UTC",
+  "expires_at": "minimum expiry of the whole pack",
+  "row_types": [
+    "video",
+    "channel"
+  ],
+  "columns": [
+    "dataset_id",
+    "comparison_id",
+    "comparison_revision",
+    "video_id",
+    "observation_id",
+    "metadata_version_id",
+    "scheduled_for",
+    "observed_at",
+    "view_count",
+    "previous_observation_id",
+    "delta_views",
+    "elapsed_seconds",
+    "growth_percent",
+    "comparison_status",
+    "resolver_version",
+    "as_of",
+    "expires_at",
+    "requested_period_hours",
+    "subject_kind",
+    "channel_id",
+    "subscriber_count",
+    "video_count",
+    "hidden_subscribers",
+    "like_count",
+    "comment_count",
+    "source",
+    "origin",
+    "field_status_json",
+    "rate_reason"
+  ]
+}

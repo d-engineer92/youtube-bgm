@@ -360,4 +360,18 @@ class TrackingTest extends TestCase
         $this->assertSame('worker_error', $target->tracking()->first()->reason);
         $this->assertSame(0, DB::table('failed_jobs')->count());
     }
+
+    public function test_g04_g16_related_channel_observations_are_fixed_and_exported_separately(): void
+    {
+        $first = $this->register();
+        app(Collector::class)->register(['kind' => 'video', 'id' => 'demoVideo02'], 10);
+        $c = app(Review::class)->save(Target::where('kind', 'video')->pluck('id')->all(), 'チャンネル背景を含む固定比較');
+        $this->assertNotEmpty($c->evidence['channels']);
+        $channel = $c->evidence['channels'][0];
+        $this->assertSame('channel', $channel['subject_kind']);
+        $this->assertNotNull($channel['observations'][0]['subscriber_count']);
+        $this->get('/comparisons/'.$c->id)->assertOk()->assertSee('関連チャンネルの公開数値');
+        $csv = $this->get('/comparisons/'.$c->id.'/export?format=csv')->assertOk()->streamedContent();
+        $this->assertStringContainsString(',channel,', $csv);
+    }
 }

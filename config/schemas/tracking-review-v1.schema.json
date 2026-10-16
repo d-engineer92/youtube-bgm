@@ -50,180 +50,12 @@
             ]
           },
           "interval": {
-            "type": "object",
-            "additionalProperties": false,
-            "properties": {
-              "resolver_version": {
-                "type": "string"
-              },
-              "mode": {
-                "type": "string"
-              },
-              "as_of": {
-                "type": "string"
-              },
-              "status": {
-                "type": "string"
-              },
-              "eligible": {
-                "type": "boolean"
-              },
-              "start_id": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "end_id": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "delta_views": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "elapsed_seconds": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "latest_age_seconds": {
-                "type": [
-                  "integer",
-                  "null"
-                ]
-              },
-              "start_at": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "end_at": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "rate_reason": {
-                "type": [
-                  "string",
-                  "null"
-                ]
-              },
-              "growth_percent": {
-                "type": [
-                  "number",
-                  "null"
-                ]
-              },
-              "period_hours": {
-                "enum": [
-                  24,
-                  168
-                ]
-              }
-            },
-            "required": [
-              "resolver_version",
-              "mode",
-              "as_of",
-              "status",
-              "eligible",
-              "start_id",
-              "end_id",
-              "delta_views",
-              "elapsed_seconds",
-              "latest_age_seconds",
-              "start_at",
-              "end_at",
-              "rate_reason",
-              "growth_percent",
-              "period_hours"
-            ]
+            "$ref": "#/$defs/interval"
           },
           "observations": {
             "type": "array",
             "items": {
-              "type": "object",
-              "additionalProperties": false,
-              "properties": {
-                "observation_id": {
-                  "type": "integer"
-                },
-                "metadata_version_id": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "view_count": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "like_count": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "comment_count": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "subscriber_count": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "video_count": {
-                  "type": [
-                    "integer",
-                    "null"
-                  ]
-                },
-                "scheduled_for": {
-                  "type": [
-                    "string",
-                    "null"
-                  ]
-                },
-                "observed_at": {
-                  "type": "string"
-                },
-                "expires_at": {
-                  "type": "string"
-                },
-                "field_status": {
-                  "type": [
-                    "object",
-                    "array"
-                  ]
-                }
-              },
-              "required": [
-                "observation_id",
-                "metadata_version_id",
-                "view_count",
-                "like_count",
-                "comment_count",
-                "subscriber_count",
-                "video_count",
-                "scheduled_for",
-                "observed_at",
-                "expires_at",
-                "field_status"
-              ]
+              "$ref": "#/$defs/observation"
             }
           },
           "first_seen_at": {
@@ -249,6 +81,15 @@
               "string",
               "null"
             ]
+          },
+          "subject_kind": {
+            "const": "video"
+          },
+          "channel_id": {
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -260,7 +101,9 @@
           "first_seen_at",
           "tracking_state",
           "tracking_reason",
-          "next_due_at"
+          "next_due_at",
+          "subject_kind",
+          "channel_id"
         ]
       }
     },
@@ -316,6 +159,77 @@
         24,
         168
       ]
+    },
+    "channels": {
+      "type": "array",
+      "maxItems": 6,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "target_id": {
+            "type": "integer"
+          },
+          "ownership": {
+            "enum": [
+              "own",
+              "competitor",
+              "unknown"
+            ]
+          },
+          "interval": {
+            "$ref": "#/$defs/interval"
+          },
+          "observations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/$defs/observation"
+            }
+          },
+          "first_seen_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tracking_state": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "tracking_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "next_due_at": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "subject_kind": {
+            "const": "channel"
+          },
+          "channel_id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "target_id",
+          "ownership",
+          "interval",
+          "observations",
+          "first_seen_at",
+          "tracking_state",
+          "tracking_reason",
+          "next_due_at",
+          "subject_kind",
+          "channel_id"
+        ]
+      }
     }
   },
   "required": [
@@ -331,8 +245,196 @@
     "subjects",
     "metadata_versions",
     "limitations",
-    "requested_period_hours"
+    "requested_period_hours",
+    "channels"
   ],
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Tracking review v1 (AI disabled by policy)"
+  "title": "Tracking review v1 (AI disabled by policy)",
+  "$defs": {
+    "observation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observation_id": {
+          "type": "integer"
+        },
+        "metadata_version_id": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "view_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "like_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "comment_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "subscriber_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "video_count": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "scheduled_for": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "observed_at": {
+          "type": "string"
+        },
+        "expires_at": {
+          "type": "string"
+        },
+        "field_status": {
+          "type": [
+            "object",
+            "array"
+          ]
+        },
+        "origin": {
+          "type": "string"
+        },
+        "hidden_subscribers": {
+          "type": [
+            "boolean",
+            "null"
+          ]
+        }
+      },
+      "required": [
+        "observation_id",
+        "metadata_version_id",
+        "view_count",
+        "like_count",
+        "comment_count",
+        "subscriber_count",
+        "video_count",
+        "scheduled_for",
+        "observed_at",
+        "expires_at",
+        "field_status",
+        "origin",
+        "hidden_subscribers"
+      ]
+    },
+    "interval": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "resolver_version": {
+          "type": "string"
+        },
+        "mode": {
+          "type": "string"
+        },
+        "as_of": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "eligible": {
+          "type": "boolean"
+        },
+        "start_id": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "end_id": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "delta_views": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "elapsed_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "latest_age_seconds": {
+          "type": [
+            "integer",
+            "null"
+          ]
+        },
+        "start_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "end_at": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "rate_reason": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "growth_percent": {
+          "type": [
+            "number",
+            "null"
+          ]
+        },
+        "period_hours": {
+          "enum": [
+            24,
+            168
+          ]
+        }
+      },
+      "required": [
+        "resolver_version",
+        "mode",
+        "as_of",
+        "status",
+        "eligible",
+        "start_id",
+        "end_id",
+        "delta_views",
+        "elapsed_seconds",
+        "latest_age_seconds",
+        "start_at",
+        "end_at",
+        "rate_reason",
+        "growth_percent",
+        "period_hours"
+      ]
+    }
+  }
 }

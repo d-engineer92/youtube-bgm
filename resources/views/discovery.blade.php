@@ -61,7 +61,7 @@
     @forelse($videos as $video)
         @php $target=$video->target; $channel=$channelMap->get($video->channel_external_id)?->channel; $delta=P::delta($target); @endphp
         <article class="card">
-            <label class="check"><input form="compare-form" type="checkbox" name="ids[]" value="{{ $target->id }}">比較に選ぶ</label>
+            <label class="check"><input form="compare-form" type="checkbox" disabled name="ids[]" value="{{ $target->id }}">比較に選ぶ</label>
             @if($video->thumbnail_url)<img loading="lazy" src="{{ $video->thumbnail_url }}" alt="{{ $video->title }}" referrerpolicy="no-referrer">@else<div class="no-image">サムネイル未取得</div>@endif
             <h3><a href="https://www.youtube.com/watch?v={{ $target->external_id }}" target="_blank" rel="noopener noreferrer">{{ $video->title }}</a></h3>
             <p>{{ $channel?->title ?? 'チャンネル名未取得' }}</p><span class="badge">{{ P::status($target->last_status) }}</span>

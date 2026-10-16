@@ -416,6 +416,18 @@
             24,
             168
           ]
+        },
+        "last_fulfilled_scheduled_for": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "unfulfilled_scheduled_for": {
+          "type": [
+            "string",
+            "null"
+          ]
         }
       },
       "required": [
@@ -433,7 +445,9 @@
         "end_at",
         "rate_reason",
         "growth_percent",
-        "period_hours"
+        "period_hours",
+        "last_fulfilled_scheduled_for",
+        "unfulfilled_scheduled_for"
       ]
     }
   }

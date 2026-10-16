@@ -55,20 +55,31 @@ class Interval
         $missing = false;
         $slots = $target->slots;
         $grace = config('tracking.schedule_grace_minutes') * 60;
+        $lastFulfilled = null;
+        $unfulfilled = null;
+        foreach ($slots as $slot) {
+            $raw = $slot->getAttributes();
+            if ($raw['fulfilled_at'] && strtotime((string) $raw['fulfilled_at']) <= $at) {
+                $lastFulfilled = max($lastFulfilled ?? PHP_INT_MIN, strtotime((string) $raw['scheduled_for']));
+            }
+        }
         foreach ($slots as $slot) {
             $raw = $slot->getAttributes();
             $due = strtotime((string) $raw['scheduled_for']);
             $fulfilled = $raw['fulfilled_at'] ? strtotime((string) $raw['fulfilled_at']) : null;
-            if ($due + $grace < $at && (! $fulfilled || $fulfilled > $at)) {
+            if ($due > ($lastFulfilled ?? PHP_INT_MIN) && $due + $grace < $at && (! $fulfilled || $fulfilled > $at)) {
                 $late = true;
+                $unfulfilled = min($unfulfilled ?? PHP_INT_MAX, $due);
             }
             if ($start && $end && $due > $start['time'] && $due <= $end['time'] && $raw['state'] === 'missed') {
                 $missing = true;
             }
         }
         $tracking = $target->tracking;
-        if ($tracking && strtotime((string) $tracking->getRawOriginal('next_due_at')) + $grace < $at) {
+        $nextDue = $tracking ? strtotime((string) $tracking->getRawOriginal('next_due_at')) : null;
+        if ($nextDue && $nextDue > ($lastFulfilled ?? PHP_INT_MIN) && $nextDue + $grace < $at) {
             $late = true;
+            $unfulfilled = min($unfulfilled ?? PHP_INT_MAX, $nextDue);
         }
         if ($end && $at > $end['time'] + config('tracking.freshness_hours') * 3600) {
             $reason = 'stale_latest';
@@ -90,6 +101,6 @@ class Interval
         $delta = $start && $end ? $end['views'] - $start['views'] : null;
         $format = fn ($point) => $point ? gmdate('Y-m-d\TH:i:s\Z', $point['time']) : null;
 
-        return ['period_hours' => $periodHours, 'resolver_version' => config('tracking.interval_version'), 'mode' => $historical ? 'fixed_past' : 'current', 'as_of' => gmdate('Y-m-d\TH:i:s\Z', $at), 'status' => $reason, 'eligible' => $reason === 'comparable', 'start_id' => $start['id'] ?? null, 'end_id' => $end['id'] ?? null, 'start_at' => $format($start), 'end_at' => $format($end), 'delta_views' => $delta, 'elapsed_seconds' => $seconds, 'growth_percent' => $start && $start['views'] > 0 ? 100 * $delta / $start['views'] : null, 'rate_reason' => ($start['views'] ?? null) === 0 ? 'zero_baseline' : null, 'latest_age_seconds' => $end ? $at - $end['time'] : null];
+        return ['last_fulfilled_scheduled_for' => $lastFulfilled === null ? null : gmdate('Y-m-d\TH:i:s\Z', $lastFulfilled), 'unfulfilled_scheduled_for' => $unfulfilled === null ? null : gmdate('Y-m-d\TH:i:s\Z', $unfulfilled), 'period_hours' => $periodHours, 'resolver_version' => config('tracking.interval_version'), 'mode' => $historical ? 'fixed_past' : 'current', 'as_of' => gmdate('Y-m-d\TH:i:s\Z', $at), 'status' => $reason, 'eligible' => $reason === 'comparable', 'start_id' => $start['id'] ?? null, 'end_id' => $end['id'] ?? null, 'start_at' => $format($start), 'end_at' => $format($end), 'delta_views' => $delta, 'elapsed_seconds' => $seconds, 'growth_percent' => $start && $start['views'] > 0 ? 100 * $delta / $start['views'] : null, 'rate_reason' => ($start['views'] ?? null) === 0 ? 'zero_baseline' : null, 'latest_age_seconds' => $end ? $at - $end['time'] : null];
     }
 }

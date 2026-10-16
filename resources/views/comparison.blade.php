@@ -18,17 +18,17 @@
 <p>要求した比較期間：{{ $pack['requested_period_hours'] ?? '失効' }}時間。実際の区間は各対象の両端を確認してください。</p><div class="compare-table">
 @foreach($targets->chunk(2) as $pair)
 <section class="panel"><h2>二対象の主要項目を見比べる</h2>
-@foreach(['title'=>'タイトル','ownership'=>'本人による対象区分','image'=>'サムネイル（現在表示と過去証跡は別）','views'=>'動画の公開再生数','likes'=>'動画の高評価・コメント数','channel'=>'関連チャンネルの公開数値（丸めあり）','delta'=>'実観測差分と区間','status'=>'比較条件','published'=>'公開日時・公開後の経過','duration'=>'動画尺'] as $field=>$label)
+@foreach(['title'=>'タイトル','ownership'=>'本人による対象区分','image'=>'サムネイル（現在表示と過去証跡は別）','views'=>'動画の公開再生数','likes'=>'動画の高評価・コメント数','channel'=>'関連チャンネルの公開数値（丸めあり）','delta'=>'実観測差分と区間（UTC）','status'=>'比較条件','published'=>'公開日時・公開後の経過','duration'=>'動画尺'] as $field=>$label)
 <h3>{{ $label }}</h3><div class="compare-pair">
 @foreach($pair as $target) @php $v=$target->video; $subject=$subjectMap->get($target->id); $i=$subject['interval'] ?? null; $last=collect($subject['observations'] ?? [])->firstWhere('observation_id',$i['end_id'] ?? null) ?? collect($subject['observations'] ?? [])->first(); $meta=collect($pack['metadata_versions'] ?? [])->firstWhere('id',$last['metadata_version_id'] ?? null); @endphp
 <div class="comparison-value" data-field="{{ $field }}">
-@if($field==='title'){{ $meta['content']['title'] ?? ($saved ? '根拠失効／未観測' : $v?->title) }}<small>メタデータ取得 {{ $meta['fetched_at'] ?? '未確認' }}</small>
+@if($field==='title'){{ $meta['content']['title'] ?? ($saved ? '根拠失効／未観測' : $v?->title) }}<small>メタデータ取得UTC {{ $meta['fetched_at'] ?? '未確認' }}</small>
 @elseif($field==='ownership'){{ ['own'=>'本人動画（申告）','competitor'=>'競合（申告）','unknown'=>'未確認'][$subject['ownership'] ?? 'unknown'] }}
 @elseif($field==='image')@if(!$saved && $v?->thumbnail_url)<img src="{{ $v->thumbnail_url }}" alt="{{ $v->title }}" referrerpolicy="no-referrer">@else 未観察（過去の画像本体は保存していません） @endif
 @elseif($field==='views'){{ P::number($last['view_count'] ?? null) }}
 @elseif($field==='likes')高評価 {{ P::number($last['like_count'] ?? null) }} ／ コメント {{ P::number($last['comment_count'] ?? null) }}
 @elseif($field==='channel')@php $ch=collect($pack['channels'] ?? [])->firstWhere('channel_id',$subject['channel_id'] ?? null); $co=collect($ch['observations'] ?? [])->first(); @endphp
-登録者 {{ P::number($co['subscriber_count'] ?? null) }} ／ 総再生 {{ P::number($co['view_count'] ?? null) }} ／ 公開動画数 {{ P::number($co['video_count'] ?? null) }}<small>取得 {{ $co['observed_at'] ?? '未確認' }}。動画の観測時刻とは別。チャンネル全形式の値であり、収集BGMの合計や新規投稿数ではありません。</small>
+登録者 {{ P::number($co['subscriber_count'] ?? null) }} ／ 総再生 {{ P::number($co['view_count'] ?? null) }} ／ 公開動画数 {{ P::number($co['video_count'] ?? null) }}<small>取得UTC {{ $co['observed_at'] ?? '未確認' }}。動画の観測時刻とは別。チャンネル全形式の値であり、収集BGMの合計や新規投稿数ではありません。</small>
 @elseif($field==='delta'){{ P::number($i['delta_views'] ?? null) }} ／ {{ round(($i['elapsed_seconds'] ?? 0)/3600,2) }}時間 <small>{{ $i['start_at'] ?? '初回のみ' }} → {{ $i['end_at'] ?? '未観測' }}</small>
 @elseif($field==='status'){{ ($i['eligible'] ?? false) ? '比較可能な指定期間の区間' : '更新遅延／参考区間・未観測' }} <small>{{ $i['status'] ?? 'evidence_expired' }}</small>
 @elseif($field==='published'){{ $meta['content']['publishedAt'] ?? '未確認' }}

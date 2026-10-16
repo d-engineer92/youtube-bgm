@@ -374,4 +374,19 @@ class TrackingTest extends TestCase
         $csv = $this->get('/comparisons/'.$c->id.'/export?format=csv')->assertOk()->streamedContent();
         $this->assertStringContainsString(',channel,', $csv);
     }
+
+    public function test_g03_old_missed_slots_do_not_poison_comparison_after_multi_day_recovery(): void
+    {
+        $target = $this->register();
+        $this->travel(3)->days();
+        $this->register();
+        $this->assertFalse(app(Interval::class)->resolve($target->fresh())['eligible']);
+        $this->assertGreaterThan(0, DB::table('tracking_slots')->where('target_id', $target->id)->where('state', 'missed')->count());
+        $this->travel(24)->hours();
+        $this->register();
+        $interval = app(Interval::class)->resolve($target->fresh());
+        $this->assertTrue($interval['eligible']);
+        $this->assertNotNull($interval['last_fulfilled_scheduled_for']);
+        $this->assertNull($interval['unfulfilled_scheduled_for']);
+    }
 }

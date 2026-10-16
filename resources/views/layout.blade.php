@@ -16,7 +16,7 @@
     @if(session('notice'))<div class="banner">{{ session('notice') }}</div>@endif
     @if($errors->any())<div class="banner error" role="alert"><ul>@foreach($errors->all() as $error)<li>{{ $error }}</li>@endforeach</ul></div>@endif
     @yield('content')
-    <footer>公開数値は仮説づくりの参考です。収益化・需要・成功率は判断しません。時刻はJST。<br>期限切れの公開データは閲覧前に削除します。<a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>で視聴・コメントを確認できます。</footer>
+    <footer>公開数値は仮説づくりの参考です。収益化・需要・成功率は判断しません。時刻はJST（UTC欄・Z表記はUTC）。<br>期限切れの公開データは閲覧前に削除します。<a href="https://www.youtube.com/" target="_blank" rel="noopener noreferrer">YouTube</a>で視聴・コメントを確認できます。</footer>
 </main>
 @include('selection-tray')
 @yield('scripts')

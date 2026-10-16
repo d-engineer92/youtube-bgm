@@ -41,6 +41,8 @@
     "source",
     "origin",
     "field_status_json",
-    "rate_reason"
+    "rate_reason",
+    "last_fulfilled_scheduled_for",
+    "unfulfilled_scheduled_for"
   ]
 }

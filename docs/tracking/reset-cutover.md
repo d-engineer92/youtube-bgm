@@ -1,7 +1,7 @@
 # 旧調査データ全消去と新方式への切替
 
 > 文書ID：TRK-004\
-> 状態：2026-10-16に利用者が「今のレコードはすべて削除」「改修と同時にDBを空に」と指示。実行は未実施。\
+> 状態：2026-10-16に利用者が「今のレコードはすべて削除」「改修と同時にDBを空に」と指示。条件確認後、2026-10-16に一回実行済み（末尾参照）。\
 > 実行者：対象ローカル環境へアクセスできるCodex。ChatGPT側ではDB操作していない。\
 > 対象：このyoutube-bgmプロジェクトの通常DB `youtube_bgm` の調査データ。
 
@@ -82,3 +82,23 @@ DBロックとメンテナンス状態の下で対象テーブルをトランザ
 Cutover::TABLESの明示リストとPROTECTED（datasets/api_days/migrations）を実DBのテーブル/FKへ照合し、未知のものがあれば停止する。順序付きDELETEを一つのPostgreSQLトランザクションとadvisory lockで行い、世代をUUIDで更新する。シーケンスを戻さず旧URLのID再利用を避ける。完了済み世代が存在したら別operationでも再消去せずalready_cut_overを返す。ファイルの探索削除やAPI台帳の初期化はしない。
 
 管理下のJSON/CSVはダウンロード応答のみでサーバー永続コピーを作らない。既存の管理下出力が別途存在すれば、対象世代と許可パスを確認するまでmanifestのoutputs_checkedをtrueにしない。音源原本・LA結果・他DBには作用しない。段階Bの改善も通常の追加変更として行い、切替を繰り返さない。
+
+
+## 実行記録（2026-10-16）
+
+切替対象コミット `681f24e1dd810929a854e733d8f83acf08c097e0`。第2・6節のP0/G01〜09、専用PostgreSQL、CI成功を照合し、Composeのweb/worker停止とscheduler未起動を実状態で確認した。追加migration後のdry-runで既知テーブル/FKを照合し、maintenance中の2026-10-16 10:33:41 JSTに一回のトランザクションを実行した。
+
+実効接続はpgsql / ローカルCompose db:5432 / youtube_bgm / bgm、PostgreSQL 18.6。旧世代 `836f2308-43de-400c-a586-0bf07a09323d` から新世代 `a31137a6-4796-4112-981a-e5e9ac1f7288` へ切替済み。これは他環境の消去承認・実施を意味しない。
+
+| 削除テーブル | 削除行数 |
+|---|---:|
+| targets / videos / channels | 583 / 318 / 265 |
+| observations / run_items | 1096 / 1096 |
+| fetch_runs / explorations / exploration_tasks / exploration_keywords | 62 / 8 / 68 / 1 |
+| comparisons / comparison_target / sessions | 2 / 4 / 14 |
+| production_briefs / analysis_revisions / metadata_versions / tracking_slots / tracking_targets / tracking_heartbeats | 各0 |
+| jobs / failed_jobs / cache / cache_locks | 各0 |
+
+消去直後に全対象調査テーブル0件を確認した。datasets・migrations・api_daysは残し、API台帳の前後SHA-256は `bf0c8bff21ef2d74a42c7bf53fae5e07ceb04cac80d134d53fbf1ebca9671d24` で一致した。.envとLA設定ファイルも前後のバイトハッシュが一致。管理下の旧出力は0件、音源原本/結果や他DBを削除する処理は実行していない。バックアップ/実データダンプも作成していない。
+
+その後web/worker/schedulerを起動して新方式の実取得を一度開始した。取得後の使用量増加は新しい実API消費であり台帳初期化ではない。部分取得・次回予定・実24時間の未確認は[TRK-005の運転結果](implementation.md#ci通常環境の実施結果2026-10-16)を参照する。以後は既切替として扱い、改善・段階B・再開時に再消去しない。

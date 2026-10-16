@@ -20,10 +20,10 @@ services:
   scheduler:
     <<: *app
     command: ["php", "artisan", "schedule:work"]
-    profiles: [scheduler]
+    restart: unless-stopped
   worker:
     <<: *app
-    command: ["php", "artisan", "queue:work", "database", "--sleep=1", "--timeout=120", "--tries=20"]
+    command: ["php", "artisan", "queue:work", "database", "--queue=tracking,default", "--sleep=1", "--timeout=120", "--tries=20"]
     restart: unless-stopped
   db:
     image: *postgres-image

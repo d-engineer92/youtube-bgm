@@ -4,6 +4,7 @@ namespace App\Services\Discovery;
 
 use App\Models\Exploration;
 use App\Services\Retention;
+use App\Services\Tracking\Dataset;
 use App\Services\YouTube\ApiFailure;
 use App\Services\YouTube\Collector;
 use Illuminate\Support\Facades\Cache;
@@ -24,6 +25,9 @@ class Runner
         try {
             $run = Exploration::find($id);
             if (! $run || ! in_array($run->status, ['queued', 'running'], true) || $run->expires_at <= now()) {
+                return null;
+            }
+            if ($run->dataset_id !== Dataset::id()) {
                 return null;
             }
             config(['youtube.mode' => $run->source]);
@@ -77,7 +81,7 @@ class Runner
                     return 30;
                 }
             }
-            if (in_array($error, ['key_missing', 'access_denied', 'daily_limit', 'quota_exceeded', 'run_limit', 'halt_requested', 'busy', 'worker_error', 'expired_run'], true) || $run->fresh()->stop_requested) {
+            if (in_array($error, ['key_missing', 'access_denied', 'daily_limit', 'quota_exceeded', 'run_limit', 'halt_requested', 'busy', 'worker_error', 'expired_run', 'tracking_budget_reserved'], true) || $run->fresh()->stop_requested) {
                 $run->update(['status' => 'paused', 'stop_reason' => $error ?? 'halt_requested', 'heartbeat_at' => now()]);
 
                 return null;

@@ -1,0 +1,48 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+let browser;
+(async()=>{
+ const base=process.env.BGM_URL||'http://127.0.0.1:8089/';
+ assert.equal((await fetch(new URL('/up',base))).headers.get('x-bgm-test-database'),'pgsql:youtube_bgm_test');
+ browser=await chromium.launch({headless:true,args:['--no-sandbox']});
+ const reports=[];
+ for(const viewport of [{width:1440,height:900},{width:390,height:844},{width:360,height:800}]){
+  const context=await browser.newContext({viewport}); const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.status()>=400)console.log('HTTP failure',r.status(),r.url());});
+  let operations=0;const started=Date.now();
+  await page.goto(new URL('/tracking',base).href);
+  assert((await page.textContent('body')).includes('130本'));
+  await page.locator('[name=theme]').selectOption('theme-0');await page.locator('[name=lens]').selectOption('recent_new');await page.getByRole('button',{name:'条件を適用',exact:true}).click();operations+=3;
+  await page.locator('.tracking-row').filter({has:page.getByRole('heading',{name:/架空0000/})}).locator('[data-tray-id]').check();operations++;
+  await page.locator('[name=theme]').selectOption('theme-1');await page.locator('[name=lens]').selectOption('recent_views');await page.getByRole('button',{name:'条件を適用',exact:true}).click();operations+=3;
+  assert.equal(await page.locator('#tray-count').textContent(),'1');
+  await page.locator('.tracking-row').filter({has:page.getByRole('heading',{name:/架空0001/})}).locator('[data-tray-id]').check();operations++;
+  await page.locator('#tray-compare').click();operations++;
+  assert.equal(await page.locator('.compare-pair').first().locator('>div').count(),2);
+  assert((await page.textContent('body')).includes('20'));assert((await page.textContent('body')).includes('3'));
+  await page.locator('[name=purpose]').fill('架空：増えた例と少ない例の反例を調べる');
+  await page.getByRole('link',{name:'選択した一覧へ戻る',exact:true}).click();
+  await page.waitForFunction(()=>document.querySelector('#tray-count')?.textContent==='2');
+  assert.equal(await page.locator('#tray-count').textContent(),'2');assert.equal(await page.locator('[name=theme]').inputValue(),'theme-1');
+  await page.locator('#tray-compare').click();assert.equal(await page.locator('[name=purpose]').inputValue(),'架空：増えた例と少ない例の反例を調べる');
+  await page.getByRole('button',{name:'比較対象と目的を保存する',exact:true}).click();
+  await page.locator('[name=hypothesis]').fill('用途が伝わったかもしれない');await page.locator('[name=counterexample]').fill('別の説明として公開経過や流入を確認');await page.locator('[name=unknown]').fill('楽器不明・画像未観察・コメント未読');
+  await page.reload();assert.equal(await page.locator('[name=hypothesis]').inputValue(),'用途が伝わったかもしれない');
+  await page.locator('[name=next_check]').fill('タイトルだけ変える');await page.getByRole('button',{name:'分析を途中保存',exact:true}).click();
+  await page.getByRole('link',{name:'仮説から試作下書きへ →',exact:true}).click();
+  await page.locator('[name="content[one_change]"]').fill('タイトルだけ変える');await page.locator('[name="content[budget]"]').fill('500円以内');await page.locator('[name="content[hours]"]').fill('2時間以内');await page.locator('[name="content[permission]"]').fill('未確認');await page.locator('[name="content[validation]"]').fill('Studioで手動確認');await page.getByRole('button',{name:'試作下書きを保存',exact:true}).click();
+  await page.reload();assert.equal(await page.locator('[name="content[one_change]"]').inputValue(),'タイトルだけ変える');
+  await page.locator('[name="reflection[source]"]').fill('Studio手入力');await page.locator('[name="reflection[period]"]').fill('公開後7日');await page.getByRole('button',{name:'試作下書きを保存',exact:true}).click();
+  assert.equal(await page.locator('[name="reflection[source]"]').inputValue(),'Studio手入力');
+  assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.getByRole('link',{name:/比較 #/}).click();
+  const dir=process.env.BGM_EVIDENCE||'/tmp/bgm-exploration';fs.mkdirSync(dir,{recursive:true});await page.screenshot({path:`${dir}/tracking-${viewport.width}.png`,fullPage:true});
+  await page.evaluate(()=>{document.body.style.zoom='200%';});assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  await page.locator('[name=hypothesis]').focus();assert(await page.locator('[name=hypothesis]').evaluate(e=>document.activeElement===e));
+  await page.screenshot({path:`${dir}/tracking-${viewport.width}-2x.png`,fullPage:true});
+  assert.deepEqual(errors,[]);assert(operations<=10);
+  reports.push({viewport,find_to_compare_operations:operations,elapsed_seconds:Math.round((Date.now()-started)/1000),result:'PASS: change→cross-lens selection→comparison→hypothesis→counterexample→brief→reflection; return and reload preserve input; zoom/focus'});
+  await context.close();
+ }
+ await browser.close();console.log(JSON.stringify(reports,null,2));
+})().catch(async e=>{console.error(e);if(browser)await browser.close();process.exitCode=1});

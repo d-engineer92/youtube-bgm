@@ -8,8 +8,11 @@ use App\Models\FetchRun;
 use App\Models\Observation;
 use App\Models\RunItem;
 use App\Models\Target;
+use App\Models\TrackingTarget;
 use App\Models\Video;
 use App\Services\Retention;
+use App\Services\Tracking\Dataset;
+use App\Services\Tracking\Recorder;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Cache;
@@ -95,8 +98,23 @@ class Collector
         });
     }
 
+    public function refreshTracked(array $ids): FetchRun
+    {
+        return $this->locked(function () use ($ids) {
+            $run = $this->newRun('tracking', ['target_ids' => $ids]);
+            foreach (Target::inMode()->whereIn('id', $ids)->get() as $target) {
+                $this->add($run, $target->kind, $target->external_id);
+            }
+
+            return $this->execute($run, 50);
+        });
+    }
+
     private function locked(callable $work): FetchRun
     {
+        if (! app()->environment('testing') && ! DB::table('datasets')->where('active', true)->whereNotNull('cutover_at')->exists()) {
+            throw new ApiFailure('cutover_required');
+        }
         $this->retention->prune();
         // One local user: serialize collection, including manual and scheduled operations.
         $result = Cache::lock('youtube:collection', 180)->get(function () use ($work) {
@@ -113,11 +131,12 @@ class Collector
 
     private function newRun(string $kind, array $conditions, ?string $key = null): FetchRun
     {
-        return FetchRun::create(['source' => config('youtube.mode'), 'kind' => $kind, 'conditions' => $conditions, 'run_key' => $key ?? (string) Str::uuid(), 'started_at' => now(), 'expires_at' => now()->addDays(config('youtube.retention_days'))]);
+        return FetchRun::create(['dataset_id' => Dataset::id(), 'source' => config('youtube.mode'), 'kind' => $kind, 'conditions' => $conditions, 'run_key' => $key ?? (string) Str::uuid(), 'started_at' => now(), 'expires_at' => now()->addDays(config('youtube.retention_days'))]);
     }
 
     private function execute(FetchRun $run, int $limit): FetchRun
     {
+        Dataset::assert($run->dataset_id);
         if ($run->source !== config('youtube.mode') || $run->expires_at <= now()) {
             throw new ApiFailure('expired_run');
         }
@@ -227,6 +246,10 @@ class Collector
     private function add(FetchRun $run, string $kind, string $id): Target
     {
         $target = Target::firstOrCreate(['source' => $run->source, 'kind' => $kind, 'external_id' => $id]);
+        if ($kind === 'channel' && ! $target->tracking()->exists()) {
+            $target->update(['dataset_id' => $run->dataset_id]);
+            TrackingTarget::firstOrCreate(['target_id' => $target->id], ['dataset_id' => $run->dataset_id, 'first_seen_at' => now(), 'last_success_at' => null, 'next_due_at' => now()]);
+        }
         RunItem::firstOrCreate(['fetch_run_id' => $run->id, 'target_id' => $target->id]);
 
         return $target;
@@ -238,7 +261,7 @@ class Collector
             $items = $run->items()->whereIn('status', ['pending', 'failed'])->whereHas('target', fn ($q) => $q->where('kind', $kind))->with('target')->get();
             foreach ($items->chunk(50) as $chunk) {
                 try {
-                    $response = $this->api->call($kind === 'video' ? 'videos' : 'channels', ['id' => $chunk->pluck('target.external_id')->implode(','), 'maxResults' => 50]);
+                    $response = $this->api->call($kind === 'video' ? 'videos' : 'channels', ['id' => $chunk->pluck('target.external_id')->implode(',')]);
                     if (! isset($response['items']) || ! is_array($response['items'])) {
                         throw new ApiFailure('invalid_response');
                     }
@@ -261,7 +284,7 @@ class Collector
                         DB::transaction(function () use ($run, $target, $data, $fetchedAt, $item, $kind) {
                             $this->store($run, $target, $data, $fetchedAt);
                             $item->update(['status' => 'success', 'error_code' => null]);
-                            if ($kind === 'video') {
+                            if ($kind === 'video' && $run->kind !== 'tracking') {
                                 $this->add($run, 'channel', $data['snippet']['channelId']);
                             }
                         });
@@ -275,7 +298,7 @@ class Collector
                         $item->update(['status' => 'failed', 'error_code' => $e->reason]);
                         $item->target->update(['last_status' => 'failed', 'last_attempt_at' => now()]);
                     }
-                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'quota_exceeded', 'operation_limit', 'run_limit', 'halt_requested', 'expired_run', 'access_denied'], true)) {
+                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'quota_exceeded', 'operation_limit', 'run_limit', 'halt_requested', 'expired_run', 'access_denied', 'tracking_budget_reserved'], true)) {
                         throw $e;
                     }
                 }
@@ -304,12 +327,12 @@ class Collector
         } else {
             $base += ['uploads_playlist' => $data['contentDetails']['relatedPlaylists']['uploads'] ?? null, 'subscriber_count' => ! empty($stats['hiddenSubscriberCount']) ? null : $this->number($stats['subscriberCount'] ?? null), 'video_count' => $this->number($stats['videoCount'] ?? null), 'hidden_subscribers' => $stats['hiddenSubscriberCount'] ?? false];
         }
-        DB::transaction(function () use ($run, $target, $base, $time, $expires) {
+        DB::transaction(function () use ($run, $target, $data, $base, $time, $expires) {
             if (Observation::where('target_id', $target->id)->where('fetch_run_id', $run->id)->exists()) {
                 return;
             }
             ($target->kind === 'video' ? Video::class : Channel::class)::updateOrCreate(['target_id' => $target->id], $base);
-            Observation::create(['target_id' => $target->id, 'fetch_run_id' => $run->id, 'view_count' => $base['view_count'], 'subscriber_count' => $base['subscriber_count'] ?? null, 'fetched_at' => $time, 'expires_at' => $expires]);
+            app(Recorder::class)->record($run, $target, $data, $base, $time, $expires);
             $target->update(['last_status' => 'success', 'last_attempt_at' => $time]);
         });
     }

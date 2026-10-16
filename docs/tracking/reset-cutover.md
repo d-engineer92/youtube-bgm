@@ -74,3 +74,11 @@ DBロックとメンテナンス状態の下で対象テーブルをトランザ
 作業ブランチは `feat/guided-discovery-exp-a-b`、開始HEAD `06900b1`。通常ComposeのdbへREAD ONLYトランザクションで接続し、current_database=youtube_bgm、current_user=bgm、既存調査行が残っていることを確認した（実データ・識別子・件数の一覧はGitへ収録しない）。migrationはcache/research/explorationの3本のみ。コードはCollector::refreshWatch()のwatched限定で、世代管理・新追跡/切替migrationは確認できない。schedulerサービスもcompose psでは起動していない。
 
 この確認範囲では新方式への切替済みの証拠はない。過去の消去履歴や全環境の状態までは断定しない。今回は仕様反映のみでP0/G01〜09は未検証のため、通常DBの消去・再収集・サービス停止/再起動は行っていない。承認済みの消去は安全な切替時の一回だけという条件を維持する。
+
+## 実装された保守入口
+
+`youtube:tracking-cutover --expected=<現世代UUID> --operation=<一回の操作UUID>` はdry-run。`--execute --acceptance=<ローカル受入manifest>` の明示がある場合だけ消去候補になる。通常環境はlocal/pgsql/Compose db:5432/youtube_bgm/bgmと実効DB・ロール・接続アドレスを照合し、maintenance状態も必須。manifestは実装HEAD、専用DB/driver、仕様レビュー、P0/G01〜09の合格、停止確認、管理下出力の確認を要求する。manifestだけで停止を証明したことにはせず、実行者はComposeの実状態を確認して記録する。
+
+Cutover::TABLESの明示リストとPROTECTED（datasets/api_days/migrations）を実DBのテーブル/FKへ照合し、未知のものがあれば停止する。順序付きDELETEを一つのPostgreSQLトランザクションとadvisory lockで行い、世代をUUIDで更新する。シーケンスを戻さず旧URLのID再利用を避ける。完了済み世代が存在したら別operationでも再消去せずalready_cut_overを返す。ファイルの探索削除やAPI台帳の初期化はしない。
+
+管理下のJSON/CSVはダウンロード応答のみでサーバー永続コピーを作らない。既存の管理下出力が別途存在すれば、対象世代と許可パスを確認するまでmanifestのoutputs_checkedをtrueにしない。音源原本・LA結果・他DBには作用しない。段階Bの改善も通常の追加変更として行い、切替を繰り返さない。

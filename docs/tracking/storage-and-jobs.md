@@ -1,7 +1,7 @@
 # 自動追跡・履歴・定期実行
 
 > 文書ID：TRK-002\
-> 状態：改修仕様、未実装。整理日：2026-10-16。\
+> 状態：段階A/Bの実装を追加。検証・通常切替・実翌日観測はTRK-005の実施記録で区別。整理日：2026-10-16。\
 > 依存：[TRK-001](README.md)、[POL-001](../compliance/data-retention.md)。
 
 ## 1. 登録と初回値
@@ -94,3 +94,27 @@
 既知動画の統計更新、新規候補のEXP検索、注目チャンネルのuploadsによる投稿発見を別ジョブ・別進捗にする。お気に入り解除で既知動画の追跡を止めない。全関連チャンネルを毎日巡回して未登録投稿を発見する約束はしない。注目チャンネルの投稿確認は既存経路を維持し、明示操作・共有予算内でページ単位に再開する。未完範囲を「最新10本確認済み」にしない。発見後は通常の初回観測＋追跡登録を原子的に行う。
 
 予算見積りは動画ceil(Nv/50)＋チャンネルceil(Nc/50)を基礎に、再試行・新規詳細・uploadsを別加算する。必要read予約と実測要求数を照合し、不足時は新規発見を待機させる。低再生を脱落させない。
+
+## 実装時の物理契約（2026-10-16）
+
+追加migrationは `database/migrations/2026_10_16_000003_create_tracking_contract.php`。既存行を消さず追加する。通常環境の新収集は一回の切替完了前に `cutover_required` で停止し、テスト環境だけ検証済み専用接続で先に実行できる。
+
+| テーブル | 一意性・索引・保存責務 |
+|---|---|
+| datasets | UUID主キー、active=true部分一意索引、cutover_operation一意。完了履歴を保護し再消去を拒否 |
+| targets / fetch_runs / explorations / comparisons | dataset_id FKを追加（旧行はNULL、新規処理は現世代を照合）。targetsのsource/kind/external_id一意を維持、ownershipを追加 |
+| tracking_targets | target_id一意FK、dataset/state/next_due_at索引。active/pausedと理由、first_seen/last_success/last_attempt/next_dueを保持 |
+| tracking_slots | dataset/target/scheduled_for一意、target/scheduled_for/state索引。pending/fulfilled/failed/missedとfulfilled_at。欠測に観測値を作らない |
+| metadata_versions | target/fetched_at索引、期限索引。許可項目のJSONB、SHA-256、取得時刻・期限。画像実体は保存しない |
+| observations | target/fetch_run一意を維持、tracking_slot_id一意FK、target/fetched_atと期限索引。検索run FKはSET NULL、版/枠削除もSET NULL。各点の値・field_status・origin・scheduled_forを保持 |
+| tracking_heartbeats | name主キー、scheduler/workerのseen_at。900秒を超えたら未稼働/期限超過表示 |
+| comparisons | 固定evidence JSONBとas_of/期限、analysis JSONBとanalysis_revision/state/template_version。期限でAPI根拠と分析本文を消す |
+| production_briefs | comparison FK、dataset/source、分析版、本人企画と手動振り返りJSONB、revision。既存比較や分析の変更で上書きしない |
+
+観測のfield_statusはreturned/not_returned/hidden。追跡理由はuser_paused、downtime、not_returned、既存API失敗コード、tracking_budget_reserved等。詳細が返らない場合は過去値を0へ変えず、追跡参照と予定は維持する。冪等な枠・トランザクション・対象行ロックで二重保存を防ぐ。追跡ジョブはtrackingキューを優先し、1ジョブ50対象、未処理は次ジョブへ、失敗は5分後以降に再試行する。関連チャンネルは独立した追跡対象としてまとめ、日次更新ではuploadsを走査しない。
+
+注目チャンネルの新規投稿発見は既存の直接登録/uploads・続き取得を維持する。確認runに件数・nextPageToken・listing_done・取得日時を残す。これは既知動画更新とは別操作であり、未走査を最新投稿全体としない。
+
+関連チャンネルは詳細が未取得でもpending相当の追跡参照を作り、last_success_atをNULLで保持して再確認する。metadataの各採用キーもNULLとfield_statusで返却有無を区別する。comparison_target.positionで本人の選択順を固定する。--daily互換入口も新ジョブへ委譲し、残件は優先キューで継続する。
+
+分析の版はanalysis_revisions（UUID主キー、comparison_id/revision一意、期限索引）へ追記し、comparisons.analysisは最新入力の表示用とする。production_briefsのcomparison_id/analysis_revisionはその一意キーをFK参照する。分析を編集しても既存試作の参照版は変えない。期限後は各版の本文をNULLにし、本人企画を結ぶ内部参照だけを失効状態で保持する。

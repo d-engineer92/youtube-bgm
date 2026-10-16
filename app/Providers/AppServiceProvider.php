@@ -2,10 +2,12 @@
 
 namespace App\Providers;
 
+use App\Services\Tracking\Dataset;
 use App\Services\YouTube\DemoGateway;
 use App\Services\YouTube\Gateway;
 use App\Services\YouTube\GoogleGateway;
 use App\Support\DatabasePolicy;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -27,6 +29,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        Queue::looping(fn () => Dataset::heartbeat('worker'));
         DatabasePolicy::assertConfiguration(
             $this->app['db']->connection()->getConfig(),
             $this->app->environment('testing'),

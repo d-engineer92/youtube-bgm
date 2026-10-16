@@ -140,3 +140,11 @@ docker compose run --rm web php artisan discovery:import-keywords /app/private/c
 ## 既存LA-1・LA-2
 
 利用者の指定でPR #2の既存コード・設定・テスト・CI・スキルを変更せず取り込んだ。検索入口から素材取得や分析を起動しない。実行手順と人工素材/実素材の区別は[専用README](docs/local-analysis/README.md#la-1la-2の実装と起動2026-10-14)。LA-3は未実装。
+
+## 全取得動画の追跡・比較・試作下書き（段階A/B）
+
+[TRK実装・受入記録](docs/tracking/implementation.md)と[安全な一回の切替](docs/tracking/reset-cutover.md)を参照。追加migrationは旧データを消去しない。通常環境は切替完了前の新収集を拒否する。既切替環境では再消去しない。
+
+切替完了後は `docker compose up -d web worker scheduler` でWeb・優先trackingキューworker・5分間隔schedulerを起動する。PC/WSL/Docker停止中の観測は作らず、復旧時は予定欠測と現在の実測を分ける。新規候補検索・既知更新・注目チャンネルの明示uploads確認は別操作。
+
+「変化を見る」から検索枠を跨いで2〜6本を選び、比較を固定保存→分析を途中保存→試作下書き・Studioの手動振り返りへ進む。0再生・低再生を除外せず追跡する。保存した過去比較は現在順位と別。AI用途・長期保持・画像証跡は無効のまま。制作・投稿は手動。

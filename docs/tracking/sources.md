@@ -40,3 +40,7 @@ T1/T3/T4/T5/T6の公式本文を今回再確認。T2は既存実装の利用先�
 実数の伸びだけでは、推薦・流行・外部紹介・タイトルやサムネイルの変更等の原因は特定できない。自分のStudio実績、実際に確認した素材等の別の根拠がない部分は未確認とする。
 
 [入口へ](README.md)
+
+## 実装時のAPIパラメーター再確認（2026-10-16）
+
+公式の[videos.list](https://developers.google.com/youtube/data/reference/rest/v3/videos/list)で、id指定とmaxResults/pageTokenを併用しない条件を再確認した。CollectorはIDを50件ずつまとめ、idだけを渡す。[channels.list](https://developers.google.com/youtube/data/reference/rest/v3/channels/list)も確認した。公式資料の確認は実API取得成功・個別AI用途の許可確認とは別であり、AI/長期保持/画像証跡の条件付き無効は維持する。

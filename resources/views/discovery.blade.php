@@ -1,7 +1,7 @@
 @extends('layout')
 @section('content')
 @php use App\Support\Presentation as P; $channelMap = $channels->keyBy('external_id'); @endphp
-<div class="intro"><p class="eyebrow">画面A / DISCOVER & WATCH</p><h1>探す・追う</h1><p>用途や雰囲気で候補を探し、取得できた範囲から比較する動画を選びます。</p></div>
+<p><a href="{{ route('tracking') }}">追跡結果・変化を見る →</a></p><div class="intro"><p class="eyebrow">画面A / DISCOVER & WATCH</p><h1>探す・追う</h1><p>用途や雰囲気で候補を探し、取得できた範囲から比較する動画を選びます。</p></div>
 <section class="panel exploration-entry">
     <p class="eyebrow">言葉が決まっていなくても、ここから</p>
     <h2>どんなBGMを作るか、まだ決まっていなくても大丈夫です。</h2>

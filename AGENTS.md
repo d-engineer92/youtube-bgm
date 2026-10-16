@@ -32,4 +32,4 @@ EXP-A・EXP-Bを実装し、既存Collector/ApiCaller・比較・ウォッチへ
 
 ## 全動画追跡・全体監査（2026-10-16）
 
-[TRK入口](docs/tracking/README.md)と[監査入口](docs/audits/2026-10-16/README.md)を参照。監査差分はTRK/EXP/FTR/RES/POL正本へ採用済み、改修実装・受入は未実施。新着・0再生を含む全取得動画を継続観測する。P0と専用PostgreSQL受入前に通常DBを消去せず、既切替なら再消去しない。範囲/130本UI計画はTRK-005、切替はTRK-004。PRを自動マージしない。
+[TRK入口](docs/tracking/README.md)と[監査入口](docs/audits/2026-10-16/README.md)を参照。監査差分はTRK/EXP/FTR/RES/POL正本へ採用済み、改修実装・受入の最新状態はTRK-005の実施記録を参照。新着・0再生を含む全取得動画を継続観測する。P0と専用PostgreSQL受入前に通常DBを消去せず、既切替なら再消去しない。範囲/130本UI計画はTRK-005、切替はTRK-004。PRを自動マージしない。

@@ -32,8 +32,8 @@
 | TRK-AC08 | 48時間の間隔/PC停止/欠測を24時間や増分0と偽らず、グラフも欠測を埋めない |
 | TRK-AC09 | 手動更新・同日追加・ジョブ二重配信・SIGKILL後の復旧でも枠/観測を重複させない |
 | TRK-AC10 | ID最大50件単位でバッチ化。130動画なら動画部分3要求。重複チャンネルをまとめ、再検索しない |
-| TRK-AC11 | API/日次/操作予算と並列予約は既存と共有。追跡を優先し、足りない場合は新規探索を止め理由を表示 |
-| TRK-AC12 | 一部詳細の失敗・0件返却・429/403/ネットワーク障害後、成功済みを壊さず未処理だけ再開 |
+| TRK-AC11 | API/日次/操作予算と並列予約は既存と共有。追跡の消費上限と手動最低枠を守り、更新待ちの存在だけでは新規探索を止めない。必要なreadが共存できない場合は理由を表示 |
+| TRK-AC12 | 一部詳細の失敗・0件返却・429/403/ネットワーク障害後、理由別の待機を守り、成功済みを壊さず未処理だけ再開 |
 | TRK-AC13 | 通常起動でscheduler/workerが揃い、画面を閉じて自動更新。未稼働/遅延の表示は虚偽でない |
 | TRK-AC14 | 検索runの28日期限で期限内の日次観測・追跡登録をcascade削除しない。古い検索所属は延命しない |
 | TRK-AC15 | 古い統計点は28日で削除され、31日目にも対象の新観測が増える。初回数値の別保存で延命しない |
@@ -211,3 +211,41 @@ docker compose --profile test run --rm browser node tests/browser/brief-expiry.c
 通常環境は同じ新世代を維持。2026-10-16 18:20 JST台に日次枠の回復を確認し、既存探索の残12タスクを既存Planner::resumeで再開、16/16 completeになった。追加消費はsearch12/read24、探索累計は16/32。新規探索は作っていない。動画128本・関連チャンネル117件、全245対象が追跡中、観測309件。再開前の56対象のfirst_seen_at/next_due_at、76観測の全行ハッシュ、分析/試作のハッシュ、過去日API台帳行の不変を再開後に照合した（分析/試作は再開前後とも0件）。実データ本文や外部IDはGitに含めない。
 
 再消去・旧世代復元・API台帳初期化は実行していない。実24時間観測はまだ未到来で未確認。最早予定は10/17 10:35:45 JSTのまま。今回後から加わった対象の初回/次回は別の時刻になる。初回探索内の重複取得を日次2点目の確認と数えない。
+
+## 2026-10-18：非返却の反復取得と新規検索停止の修正
+
+対象：G06、TRK-AC10〜13/24、AC-01/02/04/10/12/13。判断は[DEC-006](../decisions/0006-protect-import-budget.md)、仕様は[TRK-002 §5](storage-and-jobs.md#5-api予算と公平性)。PR自動マージ・通常DB再消去は行っていない。
+
+### 調査時の実運転記録
+
+2026-10-18 16:53 JST頃、通常PostgreSQLの台帳・実行・追跡状態を読み取りで確認した。外部ID・タイトル・API本文は文書へ転載していない。
+
+- live追跡は動画140本・関連チャンネル126件。139動画と126チャンネルは理由なし、1動画だけ `not_returned`。2日間の追跡項目集計で非返却205件、追跡実行はcomplete6/partial3/failed202だった。非返却の予定を未充足のまま約5分ごとに処理していた。
+- PT 10/17の台帳はsearch0/read206、PT 10/18の調査時点はsearch0/read9、どちらもblocked=false。今回確認した失敗記録はGoogleのquota超過ではない。Cloud Consoleの総割当・実残量は未確認。
+- 新規検索には `tracking_budget_reserved` の失敗があり、旧条件は追跡到来が1件でもあればread残量に関係なくsearchを拒否していた。別の検索失敗 `daily_limit` はアプリの日次検索枠によるもの。
+- 全件をまとめた理論最小は動画3＋チャンネル3の6要求。実際は到来時刻・混在バッチ・再試行で増えるため、6回/日の実測保証とはしない。
+
+### 実装・検証済み
+
+- 非返却の24時間待機、一時障害の1時間待機、quota/アプリ日次上限のPT翌日復帰、冷却中対象を除いた予算予約、追跡用途別の送信前制限を実装。元の予定と全追跡対象を維持する。
+- `TrackingBudgetTest` の6ケースで、非返却が5分ごとに再送されないこと、新規検索の継続、正常なチャンネルを再取得しないこと、再試行を含む追跡上限、手動取得枠、待機中に実行/連鎖ジョブが増えないこと、枠回復・取得復旧、source分離、画面表示を確認。
+- アプリ全体 **122テスト・740アサーション成功**。専用接続はpgsql / youtube_bgm_test / bgm_test / PostgreSQL 18.6。通常DBではテストを実行していない。Gatewayは架空応答・モックHTTP。
+- `tests/Support/worker-crash.php` のSIGKILL/同run復旧・探索の並列予約に加え、追跡の並列予約が残1枠を超えず総read/追跡readを一括加算することも成功。
+- Pint全96ファイル・Composer validate --strict成功。ブラウザー操作・LAテスト・GitHub CIは今回未実行。
+
+実行コマンド：
+
+```bash
+docker compose --profile test run --rm test php artisan test --compact
+docker compose --profile test run --rm test php tests/Support/worker-crash.php
+docker compose run --rm --no-deps web vendor/bin/pint --test
+docker compose run --rm --no-deps web composer validate --strict
+```
+
+### ローカル稼働環境への反映
+
+`docker compose exec -T web php artisan migrate --force` で台帳に追跡read列を追加し、既存read/search/blockedを維持した。`docker compose restart worker` で常駐workerを更新した。全データの初期化・再切替・新規探索の試験送信は行っていない。
+
+17:00 JSTの定期起動後、scheduler/workerのheartbeat更新、liveのread9/search0の不変、最終追跡実行が16:50 JSTのままであることを確認。通常DBのeligible対象0・追跡予約0で、非返却は再確認待ちへ移った。`/`・`/tracking`・`/tracking?status=reference` はHTTP 200、予算内訳と再確認時刻のHTMLを確認した。
+
+実観測の集計では139動画に22時間以上離れた観測が存在した。これは修正前からの実観測があることの確認であり、修正後24時間の安定稼働を意味しない。修正後の実翌日再確認、非返却動画の公開状態、Google側の実割当は未確認。

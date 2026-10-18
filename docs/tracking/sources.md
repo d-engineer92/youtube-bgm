@@ -44,3 +44,9 @@ T1/T3/T4/T5/T6の公式本文を今回再確認。T2は既存実装の利用先�
 ## 実装時のAPIパラメーター再確認（2026-10-16）
 
 公式の[videos.list](https://developers.google.com/youtube/data/reference/rest/v3/videos/list)で、id指定とmaxResults/pageTokenを併用しない条件を再確認した。CollectorはIDを50件ずつまとめ、idだけを渡す。[channels.list](https://developers.google.com/youtube/data/reference/rest/v3/channels/list)も確認した。公式資料の確認は実API取得成功・個別AI用途の許可確認とは別であり、AI/長期保持/画像証跡の条件付き無効は維持する。
+
+## API予算の再確認（2026-10-18）
+
+[T6の公式クォータ表](https://developers.google.com/youtube/data/determine_quota_cost)とT1/T2を再確認。現在の公式表はsearch.list独立100回/日、その他エンドポイント合計10,000unit/日の既定値を記載し、videos.list / channels.list / playlistItems.listは各1unit、日次更新はPT午前0時。実プロジェクトの割当・同じプロジェクトを使う他クライアントの消費は未確認であり、アプリの検索20/read500をCloudの割当や実残量と同一視しない。旧来の「searchは必ず100unit」という前提で今回の消費を換算しない。
+
+通常DBの失敗原因・呼出集計と改修の検証は[TRK-005](implementation.md#2026-10-18非返却の反復取得と新規検索停止の修正)を参照。予算値と再確認間隔は公式制限ではなく[TRK-002](storage-and-jobs.md#5-api予算と公平性)の設計判断。

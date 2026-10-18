@@ -44,7 +44,7 @@
 | 旧DBデータ消去・切替 | [TRK-004](reset-cutover.md) |
 | Codex実装依頼・受入条件 | [TRK-005](implementation.md) |
 | 根拠・外部確認・長期蓄積の制約 | [TRK-006](sources.md) |
-| 判断の履歴 | [DEC-005](../decisions/0005-observe-all-from-first-fetch.md) |
+| 判断の履歴 | [DEC-005](../decisions/0005-observe-all-from-first-fetch.md)、[DEC-006：新規取り込みの予算保護](../decisions/0006-protect-import-budget.md) |
 
 ## 旧仕様との優先関係
 

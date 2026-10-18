@@ -93,4 +93,35 @@ foreach ($children as $child) {
 DB::purge();
 check($budget->fresh()->read_calls === 1, 'Concurrent reservations exceeded run limit');
 echo "PASS: concurrent PostgreSQL call reservations respect persistent run budget after reset\n";
+
+// The shared tracking ceiling must hold across independent workers, including retries.
+$before = DB::table('api_days')->where('source', 'demo')->where('day', now('America/Los_Angeles')->toDateString())->first();
+config(['youtube.daily_tracking_read_calls' => $before->tracking_read_calls + 1, 'youtube.manual_read_reserve' => 0]);
+$children = [];
+DB::disconnect();
+for ($i = 0; $i < 2; $i++) {
+    $child = pcntl_fork();
+    if ($child === 0) {
+        DB::purge();
+        app()->instance('tracking_request', true);
+        $api = app(ApiCaller::class);
+        $api->setExploration(null);
+        $api->reset();
+        try {
+            $api->call('videos', ['id' => 'demoVideo01']);
+        } catch (ApiFailure $e) {
+            check($e->reason === 'tracking_daily_limit', 'Concurrent tracking failed for another reason');
+        }
+        exit(0);
+    }
+    $children[] = $child;
+}
+foreach ($children as $child) {
+    pcntl_waitpid($child, $status);
+    check(pcntl_wifexited($status) && pcntl_wexitstatus($status) === 0, 'Concurrent tracking child failed');
+}
+DB::purge();
+$after = DB::table('api_days')->where('id', $before->id)->first();
+check($after->tracking_read_calls === $before->tracking_read_calls + 1 && $after->read_calls === $before->read_calls + 1, 'Concurrent tracking exceeded the shared daily limit');
+echo "PASS: concurrent tracking reservations increment shared and tracking counters exactly once\n";
 Carbon::setTestNow();

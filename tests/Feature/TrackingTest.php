@@ -289,6 +289,7 @@ class TrackingTest extends TestCase
 
     public function test_g06_tracking_budget_reservation_prevents_new_discovery_without_dropping_low_views(): void
     {
+        config(['youtube.daily_read_calls' => 2, 'youtube.manual_read_reserve' => 0]);
         app(SyntheticFixture::class)->seed(3);
         TrackingTarget::query()->update(['next_due_at' => now()->subMinute()]);
         $this->post('/search', ['q' => 'ambient', 'order' => 'date', 'duration' => 'long', 'limit' => 10])->assertRedirect();

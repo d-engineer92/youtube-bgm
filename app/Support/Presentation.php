@@ -38,6 +38,7 @@ class Presentation
             'halt_requested' => '停止を受け付けました。保存済み結果は残っています。',
             'worker_error' => 'ワーカーが中断しました。起動を確認して続きから再開してください。',
             'daily_limit' => 'このアプリの日次呼出上限に達しました。', 'quota_exceeded' => 'YouTubeのクォータ上限。翌日の割当またはCloud Consoleを確認してください。',
+            'tracking_daily_limit' => '追跡の日次読取枠に達しました。新規・手動取得用の枠を残して、太平洋時間の翌日まで待機します。',
             'network_error' => '通信失敗／タイムアウト。回数を制限して再試行しました。', 'temporary_error' => 'APIの一時エラー。回数を制限して再試行しました。',
             'operation_limit' => '今回の処理時間・呼出回数上限。未取得分は再試行できます。', 'access_denied' => 'APIへのアクセス拒否。キーの制限とAPIの有効化を確認してください。',
             'invalid_request' => 'APIが取得条件を受け付けませんでした。', 'channel_unavailable' => 'チャンネル情報／投稿一覧を取得できませんでした。',

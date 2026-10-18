@@ -2,8 +2,6 @@
 
 namespace App\Jobs;
 
-use App\Models\Target;
-use App\Models\TrackingTarget;
 use App\Services\Tracking\Dataset;
 use App\Services\Tracking\Updater;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -21,8 +19,7 @@ class UpdateTracking implements ShouldQueue
             return;
         }
         $updater->run($this->dataset, $this->source);
-        $pending = TrackingTarget::where('dataset_id', $this->dataset)->where('state', 'active')->where('next_due_at', '<=', now())->whereIn('target_id', Target::where('source', $this->source)->select('id'))->where(fn ($q) => $q->whereNull('last_attempt_at')->orWhere('last_attempt_at', '<=', now()->subMinutes(5)))->exists();
-        if ($pending) {
+        if ($updater->hasPending($this->dataset, $this->source)) {
             self::dispatch($this->dataset, $this->source)->onConnection('database')->onQueue('tracking')->delay(1);
         }
     }

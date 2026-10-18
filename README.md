@@ -54,6 +54,17 @@ docker compose --profile scheduler up -d scheduler
 
 停止は`docker compose --profile scheduler stop`。DBのデータは名前付きvolumeへ保存し、自動バックアップは作らない。
 
+### Windows再起動後・既存環境の復旧
+
+全動画追跡への切替済み環境では、Docker Desktop / Docker EngineとWSLが起動していることを確認し、リポジトリルートで次を実行する。既存の.env・APP_KEY・DB volumeを使い、DB初期化や再切替は行わない。
+
+```bash
+docker compose up -d --no-build db web worker scheduler
+docker compose ps db web worker scheduler
+```
+
+通常運用の4サービスは`restart: unless-stopped`でDocker Engineの再起動時にも復帰する。Docker Desktop / WSL自体の起動は別途必要で、`docker compose stop`で明示停止した場合は上記の`up`で再開する。再起動方針は[Docker公式資料](https://docs.docker.com/engine/containers/start-containers-automatically/)で2026-10-17に確認した。Windows自体の再起動による自動復帰は未検証。停止期間の観測は作らず、復旧後の実取得と欠測を区別する。
+
 ## テスト
 
 DBは開発・通常運用・テスト・CIともPostgreSQLのみ。[ARC-002](docs/architecture/database-policy.md)に従う。PostgreSQLのメジャーはcompose.yamlのx-postgres-imageで一元管理し、CIも同じComposeを使用する。通常データはyoutube_bgmに集約し、自動テストだけを使い捨てのyoutube_bgm_testへ隔離する。SQLiteへの代替経路はない。`composer test`もテスト用コンテナー内で実行する。

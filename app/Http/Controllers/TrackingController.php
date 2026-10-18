@@ -9,6 +9,7 @@ use App\Models\Target;
 use App\Services\Tracking\Dataset;
 use App\Services\Tracking\Interval;
 use App\Services\Tracking\Review;
+use App\Services\YouTube\ApiBudget;
 use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -55,14 +56,17 @@ class TrackingController extends Controller
         $slice = array_slice($ids, ($page - 1) * 24, 24);
         $targets = Target::whereIn('id', $slice)->with(['video' => fn ($q) => $q->select('videos.*')->selectSub(fn ($c) => $c->from('channels')->join('targets as ct', 'ct.id', '=', 'channels.target_id')->whereColumn('ct.external_id', 'videos.channel_external_id')->where('ct.source', config('youtube.mode'))->select('channels.title')->limit(1), 'channel_title'), 'tracking'])->get()->sortBy(fn ($t) => array_search($t->id, $slice));
         $videos = new LengthAwarePaginator($targets, count($ids), 24, $page, ['path' => $request->url(), 'query' => $request->query()]);
-        $heartbeats = DB::table('tracking_heartbeats')->selectRaw('name, seen_at, NULL::integer as search_calls, NULL::integer as read_calls')->unionAll(DB::table('api_days')->selectRaw("'budget' as name, NULL::timestamptz as seen_at, search_calls, read_calls")->where('source', config('youtube.mode'))->where('day', now('America/Los_Angeles')->toDateString()))->get()->keyBy('name');
+        $heartbeats = DB::table('tracking_heartbeats')->selectRaw('name, seen_at, NULL::integer as search_calls, NULL::integer as read_calls, NULL::integer as tracking_read_calls, NULL::boolean as blocked')->unionAll(DB::table('api_days')->selectRaw("'budget' as name, NULL::timestamptz as seen_at, search_calls, read_calls, tracking_read_calls, blocked")->where('source', config('youtube.mode'))->where('day', now('America/Los_Angeles')->toDateString()))->get()->keyBy('name');
         $budget = $heartbeats->pull('budget');
+        $budgetPolicy = app(ApiBudget::class);
+        $trackingLimit = $budgetPolicy->trackingLimit();
+        $trackingStop = $budgetPolicy->trackingStopReason($budget);
         $totals = DB::table('targets')->join('tracking_targets', 'tracking_targets.target_id', '=', 'targets.id')->where('targets.source', config('youtube.mode'))->selectRaw('kind, count(*) as n')->groupBy('kind')->pluck('n', 'kind');
         $counts = ['total' => (int) ($totals['video'] ?? 0), 'channels' => (int) ($totals['channel'] ?? 0), 'comparable' => collect($summary)->where('eligible', true)->count(), 'reference' => collect($summary)->where('eligible', false)->count(), 'pending' => collect($summary)->whereIn('status', ['first_observation', 'no_valid_observation'])->count(), 'late' => collect($summary)->whereIn('status', ['unfulfilled_due', 'stale_latest'])->count(), 'failed' => collect($summary)->where('status', 'latest_attempt_failed')->count()];
 
         $themes = DB::table('exploration_tasks')->join('explorations', 'explorations.id', '=', 'exploration_tasks.exploration_id')->where('explorations.source', config('youtube.mode'))->where('exploration_tasks.expires_at', '>', now())->select('theme_id', 'label_ja')->distinct()->get();
 
-        return view('tracking', compact('videos', 'summary', 'counts', 'heartbeats', 'asOf', 'themes', 'budget'));
+        return view('tracking', compact('videos', 'summary', 'counts', 'heartbeats', 'asOf', 'themes', 'budget', 'trackingLimit', 'trackingStop'));
     }
 
     public function selection(Request $request)

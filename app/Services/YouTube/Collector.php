@@ -298,7 +298,7 @@ class Collector
                         $item->update(['status' => 'failed', 'error_code' => $e->reason]);
                         $item->target->update(['last_status' => 'failed', 'last_attempt_at' => now()]);
                     }
-                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'quota_exceeded', 'operation_limit', 'run_limit', 'halt_requested', 'expired_run', 'access_denied', 'tracking_budget_reserved'], true)) {
+                    if (in_array($e->reason, ['key_missing', 'daily_limit', 'tracking_daily_limit', 'quota_exceeded', 'operation_limit', 'run_limit', 'halt_requested', 'expired_run', 'access_denied', 'tracking_budget_reserved'], true)) {
                         throw $e;
                     }
                 }
